@@ -153,6 +153,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'screens/login_screen.dart';
 import 'security/activation_screen.dart'; // استيراد شاشة التفعيل
 import 'screens/settings_screen.dart';
+import 'widgets/escape_handler.dart';
 
 void main() async {
   // التأكد من تهيئة Flutter
@@ -228,109 +229,94 @@ class _MyAppState extends State<MyApp> {
     }
 
     return MaterialApp(
-      title: 'Al Hal Market',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.light,
-        ),
-        useMaterial3: true,
-        fontFamily: 'Arial',
-        textTheme: TextTheme(
-          displayLarge: TextStyle(fontSize: 28 * _fontScale),
-          displayMedium: TextStyle(fontSize: 24 * _fontScale),
-          displaySmall: TextStyle(fontSize: 20 * _fontScale),
-          headlineLarge: TextStyle(fontSize: 24 * _fontScale),
-          headlineMedium: TextStyle(fontSize: 20 * _fontScale),
-          headlineSmall: TextStyle(fontSize: 16 * _fontScale),
-          titleLarge: TextStyle(fontSize: 18 * _fontScale),
-          titleMedium: TextStyle(fontSize: 16 * _fontScale),
-          titleSmall: TextStyle(fontSize: 14 * _fontScale),
-          bodyLarge: TextStyle(fontSize: 14 * _fontScale),
-          bodyMedium: TextStyle(fontSize: 12 * _fontScale),
-          bodySmall: TextStyle(fontSize: 10 * _fontScale),
-          labelLarge: TextStyle(fontSize: 14 * _fontScale),
-          labelMedium: TextStyle(fontSize: 12 * _fontScale),
-          labelSmall: TextStyle(fontSize: 10 * _fontScale),
-        ),
-        iconTheme: IconThemeData(size: 24 * _iconScale),
-        iconButtonTheme: IconButtonThemeData(
-          style: IconButton.styleFrom(iconSize: 24 * _iconScale),
-        ),
-        appBarTheme: AppBarTheme(
-          // توسيع شريط AppBar عامودياً للضعف
-          toolbarHeight: 112.0, // القيمة الافتراضية 56، تم مضاعفتها إلى 112
-          titleTextStyle: TextStyle(
-            fontSize: 18 * _fontScale,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
+        title: 'Al Hal Market',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.teal,
+            brightness: Brightness.light,
           ),
-          iconTheme: IconThemeData(
-            size: 24 * _iconScale,
-            color: Colors.white,
+          useMaterial3: true,
+          fontFamily: 'Arial',
+          textTheme: TextTheme(
+            displayLarge: TextStyle(fontSize: 28 * _fontScale),
+            displayMedium: TextStyle(fontSize: 24 * _fontScale),
+            displaySmall: TextStyle(fontSize: 20 * _fontScale),
+            headlineLarge: TextStyle(fontSize: 24 * _fontScale),
+            headlineMedium: TextStyle(fontSize: 20 * _fontScale),
+            headlineSmall: TextStyle(fontSize: 16 * _fontScale),
+            titleLarge: TextStyle(fontSize: 18 * _fontScale),
+            titleMedium: TextStyle(fontSize: 16 * _fontScale),
+            titleSmall: TextStyle(fontSize: 14 * _fontScale),
+            bodyLarge: TextStyle(fontSize: 14 * _fontScale),
+            bodyMedium: TextStyle(fontSize: 12 * _fontScale),
+            bodySmall: TextStyle(fontSize: 10 * _fontScale),
+            labelLarge: TextStyle(fontSize: 14 * _fontScale),
+            labelMedium: TextStyle(fontSize: 12 * _fontScale),
+            labelSmall: TextStyle(fontSize: 10 * _fontScale),
           ),
-          toolbarTextStyle: TextStyle(
-            fontSize: 14 * _fontScale,
-            color: Colors.white,
+          iconTheme: IconThemeData(size: 24 * _iconScale),
+          iconButtonTheme: IconButtonThemeData(
+            style: IconButton.styleFrom(iconSize: 24 * _iconScale),
           ),
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            textStyle: TextStyle(fontSize: 14 * _fontScale),
-          ),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            textStyle: TextStyle(fontSize: 14 * _fontScale),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: OutlinedButton.styleFrom(
-            textStyle: TextStyle(fontSize: 14 * _fontScale),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          labelStyle: TextStyle(fontSize: 14 * _fontScale),
-          hintStyle: TextStyle(fontSize: 12 * _fontScale),
-          errorStyle: TextStyle(fontSize: 10 * _fontScale),
-        ),
-        listTileTheme: ListTileThemeData(
-          titleTextStyle: TextStyle(fontSize: 14 * _fontScale),
-          subtitleTextStyle: TextStyle(fontSize: 12 * _fontScale),
-        ),
-        snackBarTheme: SnackBarThemeData(
-          contentTextStyle: TextStyle(fontSize: 12 * _fontScale),
-        ),
-      ),
-      // تحديد الشاشة الرئيسية بناءً على حالة التفعيل
-      home: widget.isActivated ? const LoginScreen() : const ActivationScreen(),
-      routes: {
-        '/settings': (context) => const SettingsScreen(),
-      },
-      builder: (context, child) {
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(_fontScale),
-          ),
-          child: RawKeyboardListener(
-            focusNode: FocusNode(),
-            onKey: (RawKeyEvent event) {
-              // معالجة زر ESC للتراجع
-              if (event is RawKeyDownEvent &&
-                  event.logicalKey == LogicalKeyboardKey.escape) {
-                if (Navigator.of(context).canPop()) {
-                  Navigator.of(context).pop();
-                }
-              }
-            },
-            child: Focus(
-              autofocus: true,
-              child: child!,
+          appBarTheme: AppBarTheme(
+            // توسيع شريط AppBar عامودياً للضعف
+            toolbarHeight: 112.0, // القيمة الافتراضية 56، تم مضاعفتها إلى 112
+            titleTextStyle: TextStyle(
+              fontSize: 18 * _fontScale,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            iconTheme: IconThemeData(
+              size: 24 * _iconScale,
+              color: Colors.white,
+            ),
+            toolbarTextStyle: TextStyle(
+              fontSize: 14 * _fontScale,
+              color: Colors.white,
             ),
           ),
-        );
-      },
-    );
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              textStyle: TextStyle(fontSize: 14 * _fontScale),
+            ),
+          ),
+          textButtonTheme: TextButtonThemeData(
+            style: TextButton.styleFrom(
+              textStyle: TextStyle(fontSize: 14 * _fontScale),
+            ),
+          ),
+          outlinedButtonTheme: OutlinedButtonThemeData(
+            style: OutlinedButton.styleFrom(
+              textStyle: TextStyle(fontSize: 14 * _fontScale),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            labelStyle: TextStyle(fontSize: 14 * _fontScale),
+            hintStyle: TextStyle(fontSize: 12 * _fontScale),
+            errorStyle: TextStyle(fontSize: 10 * _fontScale),
+          ),
+          listTileTheme: ListTileThemeData(
+            titleTextStyle: TextStyle(fontSize: 14 * _fontScale),
+            subtitleTextStyle: TextStyle(fontSize: 12 * _fontScale),
+          ),
+          snackBarTheme: SnackBarThemeData(
+            contentTextStyle: TextStyle(fontSize: 12 * _fontScale),
+          ),
+        ),
+        // تحديد الشاشة الرئيسية بناءً على حالة التفعيل
+        home:
+            widget.isActivated ? const LoginScreen() : const ActivationScreen(),
+        routes: {
+          '/settings': (context) => const SettingsScreen(),
+        },
+        builder: (context, child) {
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(_fontScale),
+            ),
+            child: EscapeHandler(child: child!), // ✅ استخدم الـ Widget الجديد
+          );
+        });
   }
 }

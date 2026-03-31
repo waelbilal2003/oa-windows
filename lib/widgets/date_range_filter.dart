@@ -45,24 +45,26 @@ class _DateRangeFilterIconState extends State<DateRangeFilterIcon> {
 
   @override
   Widget build(BuildContext context) {
+    // الحصول على مقياس التكبير من MediaQuery
+    final textScaler = MediaQuery.of(context).textScaler;
+    final iconScale = textScaler.scale(1.0);
+
     return IconButton(
       icon: Stack(
         clipBehavior: Clip.none,
         children: [
-          // ✅ الأيقونة الرئيسية واضحة تماماً
           Icon(
             Icons.date_range,
             color: widget.color,
-            size: 24,
+            size: 24 * iconScale, // مضروب بمقياس الأيقونات
           ),
-          // ✅ نقطة التنبيه إذا كان الفلتر نشطاً
           if (_isActive)
             Positioned(
-              top: -4,
-              right: -4,
+              top: -4 * iconScale,
+              right: -4 * iconScale,
               child: Container(
-                width: 12,
-                height: 12,
+                width: 12 * iconScale,
+                height: 12 * iconScale,
                 decoration: const BoxDecoration(
                   color: Colors.orange,
                   shape: BoxShape.circle,
@@ -114,8 +116,13 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
     return DateTime(y, m, d > max ? max : d);
   }
 
+  // دالة مساعدة للحصول على المقياس
+  double get _scale => MediaQuery.of(context).textScaler.scale(1.0);
+
   @override
   Widget build(BuildContext context) {
+    final scale = _scale;
+
     const months = [
       'يناير',
       'فبراير',
@@ -143,46 +150,43 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
         children: [
           Text(label,
               style: TextStyle(
-                  fontSize: 15,
+                  fontSize: 15 * scale,
                   fontWeight: FontWeight.bold,
-                  color: color)), // Increased by 50%
-          const SizedBox(height: 3), // Increased by 50%
+                  color: color)),
+          const SizedBox(height: 3),
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12), // Increased
-              border: Border.all(
-                  color: Colors.grey[300]!, width: 1.5), // Thicker border
+              borderRadius: BorderRadius.circular(12 * scale),
+              border: Border.all(color: Colors.grey[300]!, width: 1.5 * scale),
             ),
             child: Column(
               children: [
                 SizedBox(
-                  height: 42, // Increased from 28
-                  width: 42, // Increased from 28
+                  height: 42 * scale,
+                  width: 42 * scale,
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: Icon(Icons.arrow_drop_up,
-                        size: 33,
-                        color: Colors.green[600]), // Increased from 22
+                        size: 33 * scale, color: Colors.green[600]),
                     onPressed: onUp,
                   ),
                 ),
                 SizedBox(
-                  height: 39, // Increased from 26
+                  height: 39 * scale,
                   child: Center(
                     child: Text(display,
-                        style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold)), // Increased from 12
+                        style: TextStyle(
+                            fontSize: 18 * scale, fontWeight: FontWeight.bold)),
                   ),
                 ),
                 SizedBox(
-                  height: 42, // Increased from 28
-                  width: 42, // Increased from 28
+                  height: 42 * scale,
+                  width: 42 * scale,
                   child: IconButton(
                     padding: EdgeInsets.zero,
                     icon: Icon(Icons.arrow_drop_down,
-                        size: 33, color: Colors.red[600]), // Increased from 22
+                        size: 33 * scale, color: Colors.red[600]),
                     onPressed: onDown,
                   ),
                 ),
@@ -204,25 +208,24 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
         children: [
           Row(
             children: [
-              Icon(Icons.calendar_today,
-                  size: 19.5, color: color), // Increased from 13
-              const SizedBox(width: 6), // Increased from 4
+              Icon(Icons.calendar_today, size: 19.5 * scale, color: color),
+              const SizedBox(width: 6),
               Text(sectionLabel,
                   style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 18 * scale,
                       fontWeight: FontWeight.bold,
-                      color: color)), // Increased from 12
-              const SizedBox(width: 12), // Increased from 8
+                      color: color)),
+              const SizedBox(width: 12),
               Text(
                 '${date.year}/${date.month}/${date.day}',
                 style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 18 * scale,
                     color: color,
-                    fontWeight: FontWeight.bold), // Increased from 12
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          const SizedBox(height: 9), // Increased from 6
+          const SizedBox(height: 9),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -267,20 +270,18 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
       textDirection: TextDirection.rtl,
       child: AlertDialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24)), // Increased from 16
+            borderRadius: BorderRadius.circular(24 * scale)),
         titlePadding:
-            const EdgeInsets.fromLTRB(24, 24, 24, 12), // Increased by 50%
+            EdgeInsets.fromLTRB(24 * scale, 24 * scale, 24 * scale, 12 * scale),
         contentPadding:
-            const EdgeInsets.fromLTRB(24, 0, 24, 12), // Increased by 50%
+            EdgeInsets.fromLTRB(24 * scale, 0, 24 * scale, 12 * scale),
         title: Row(
           children: [
-            Icon(Icons.date_range,
-                color: Colors.black, size: 27), // Increased from 18
-            const SizedBox(width: 12), // Increased from 8
-            const Text('فلترة بالتاريخ',
+            Icon(Icons.date_range, color: Colors.black, size: 27 * scale),
+            const SizedBox(width: 12),
+            Text('فلترة بالتاريخ',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22.5)), // Increased from 15
+                    fontWeight: FontWeight.bold, fontSize: 22.5 * scale)),
           ],
         ),
         content: Column(
@@ -298,7 +299,7 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
                     onChanged: (d) => setState(() => tempFrom = d),
                   ),
                 ),
-                const SizedBox(width: 24), // Increased from 16
+                const SizedBox(width: 24),
                 Expanded(
                   child: datePicker(
                     sectionLabel: 'إلى تاريخ',
@@ -315,7 +316,7 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
           TextButton(
             onPressed: () => Navigator.pop(context),
             style: TextButton.styleFrom(
-              textStyle: const TextStyle(fontSize: 16.5), // Increased
+              textStyle: TextStyle(fontSize: 16.5 * scale),
             ),
             child: const Text('إلغاء'),
           ),
@@ -325,7 +326,7 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(
-              textStyle: const TextStyle(fontSize: 16.5), // Increased
+              textStyle: TextStyle(fontSize: 16.5 * scale),
             ),
             child:
                 const Text('مسح الفلتر', style: TextStyle(color: Colors.red)),
@@ -333,9 +334,9 @@ class __DateRangeDialogState extends State<_DateRangeDialog> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: widget.color,
-              textStyle: const TextStyle(fontSize: 16.5), // Increased
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 24, vertical: 12), // Larger padding
+              textStyle: TextStyle(fontSize: 16.5 * scale),
+              padding: EdgeInsets.symmetric(
+                  horizontal: 24 * scale, vertical: 12 * scale),
             ),
             onPressed: () {
               if (tempFrom.isAfter(tempTo)) {
@@ -375,35 +376,35 @@ class FilterChipWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).textScaler.scale(1.0);
+
     if (from == null && to == null) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12), // Increased from 8
+      padding: EdgeInsets.only(bottom: 12 * scale),
       child: Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: 18, vertical: 9), // Increased from 12,6
+        padding:
+            EdgeInsets.symmetric(horizontal: 18 * scale, vertical: 9 * scale),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
-          border: Border.all(color: color, width: 1.5), // Thicker border
-          borderRadius: BorderRadius.circular(12), // Increased from 8
+          border: Border.all(color: color, width: 1.5 * scale),
+          borderRadius: BorderRadius.circular(12 * scale),
         ),
         child: Row(
           children: [
-            Icon(Icons.filter_alt, color: color, size: 24), // Increased from 16
-            const SizedBox(width: 9), // Increased from 6
+            Icon(Icons.filter_alt, color: color, size: 24 * scale),
+            const SizedBox(width: 9),
             Expanded(
               child: Text(
                 'الفلتر: '
                 '${from != null ? '${from!.year}/${from!.month}/${from!.day}' : '—'}'
                 ' ← '
                 '${to != null ? '${to!.year}/${to!.month}/${to!.day}' : '—'}',
-                style: TextStyle(
-                    color: Colors.black, fontSize: 18), // Increased from 12
+                style: TextStyle(color: Colors.black, fontSize: 18 * scale),
               ),
             ),
             GestureDetector(
               onTap: onClear,
-              child: Icon(Icons.close,
-                  color: color, size: 24), // Increased from 16
+              child: Icon(Icons.close, color: color, size: 24 * scale),
             ),
           ],
         ),
