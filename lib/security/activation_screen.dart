@@ -4,7 +4,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../screens/login_screen.dart';
+import '../screens/date_selection_screen.dart';
 
 // دالة بسيطة لتعتيم المفتاح السري قليلاً
 String getSecretKey() {
@@ -29,14 +29,36 @@ class _ActivationScreenState extends State<ActivationScreen> {
   bool _isLoading = false;
   String _errorMessage = '';
 
-  // دالة لجلب معرّف الجهاز الفريد
+  // دالة لجلب معرّف الجهاز الفريد (يدعم Windows و Android)
   Future<String?> _getDeviceId() async {
     final deviceInfo = DeviceInfoPlugin();
+
     if (Platform.isAndroid) {
       final androidInfo = await deviceInfo.androidInfo;
-      return androidInfo.id;
+      return androidInfo.id; // Android ID
+    } else if (Platform.isWindows) {
+      final windowsInfo = await deviceInfo.windowsInfo;
+      // استخدام MachineGuid أو معرف فريد آخر
+      return windowsInfo.deviceId;
+    } else if (Platform.isIOS) {
+      final iosInfo = await deviceInfo.iosInfo;
+      return iosInfo.identifierForVendor;
+    } else if (Platform.isLinux) {
+      final linuxInfo = await deviceInfo.linuxInfo;
+      return linuxInfo.machineId;
+    } else if (Platform.isMacOS) {
+      final macInfo = await deviceInfo.macOsInfo;
+      return macInfo.systemGUID;
     }
-    return null;
+
+    // Fallback: استخدام معرف من SharedPreferences (حل بديل)
+    final prefs = await SharedPreferences.getInstance();
+    String? fallbackId = prefs.getString('fallback_device_id');
+    if (fallbackId == null) {
+      fallbackId = DateTime.now().millisecondsSinceEpoch.toString();
+      await prefs.setString('fallback_device_id', fallbackId);
+    }
+    return fallbackId;
   }
 
   Future<void> _activateDevice() async {
@@ -59,11 +81,9 @@ class _ActivationScreenState extends State<ActivationScreen> {
     }
 
     String url = _ngrokUrlController.text.trim();
-
     if (url.endsWith('/')) {
       url = url.substring(0, url.length - 1);
     }
-
     final fullUrl = Uri.parse('$url/api/register_device.php');
 
     try {
@@ -87,28 +107,12 @@ class _ActivationScreenState extends State<ActivationScreen> {
           await prefs.setString(
               'activation_status', base64.encode(utf8.encode('activated_ok')));
 
-          // حفظ اسم الزبون
-          await prefs.setString(
-              'customer_name', _customerNameController.text.trim());
-
-          // حفظ نوع المتجر واسم المتجر من بيانات الاستجابة
-          final storeType = responseData['store_type'] ?? 'نوع المتجر';
-          final storeName = responseData['store_name'] ?? 'اسم المتجر';
-          final sellerName = responseData['seller_name'] ??
-              _customerNameController.text.trim();
-
-          await prefs.setString('store_type', storeType);
-          await prefs.setString('store_name', storeName);
-          await prefs.setString('seller_name', sellerName);
-
           if (mounted) {
-            // الانتقال إلى LoginScreen مع تمرير المعلمات اللازمة
             Navigator.of(context).pushReplacement(
               MaterialPageRoute(
-                builder: (_) => LoginScreen(
-                  sellerName: sellerName,
-                  storeType: storeType,
-                  storeName: storeName,
+                builder: (_) => const DateSelectionScreen(
+                  storeType: '',
+                  storeName: '',
                 ),
               ),
             );
@@ -145,20 +149,49 @@ class _ActivationScreenState extends State<ActivationScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    // --- رأس الصفحة ---
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.teal[700],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 48,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     const Text(
                       'تفعيل التطبيق',
-                      style:
-                          TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'يرجى إدخال بيانات التفعيل للمتابعة',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
                     ),
                     const SizedBox(height: 30),
+
+                    // --- حقل الرابط ---
                     TextFormField(
                       controller: _ngrokUrlController,
                       textAlign: TextAlign.right,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'ادخل رابط التفعيل',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.link),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.link),
                         alignLabelWithHint: true,
+                        filled: true,
+                        fillColor: Colors.grey[50],
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -168,15 +201,19 @@ class _ActivationScreenState extends State<ActivationScreen> {
                       },
                       keyboardType: TextInputType.url,
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
+
+                    // --- حقل اسم الزبون ---
                     TextFormField(
                       controller: _customerNameController,
                       textAlign: TextAlign.right,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'اسم الزبون',
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.person),
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person),
                         alignLabelWithHint: true,
+                        filled: true,
+                        fillColor: Colors.grey[50],
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -185,32 +222,184 @@ class _ActivationScreenState extends State<ActivationScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
+
+                    // --- زر التفعيل ---
                     if (_isLoading)
-                      const CircularProgressIndicator()
+                      const CircularProgressIndicator(color: Colors.teal)
                     else
-                      ElevatedButton(
-                        onPressed: _activateDevice,
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 50, vertical: 15),
-                          textStyle: const TextStyle(fontSize: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _activateDevice,
+                          icon: const Icon(Icons.verified_user_outlined),
+                          label: const Text('تفعيل'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal[700],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            textStyle: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
                         ),
-                        child: const Text('تفعيل'),
                       ),
-                    const SizedBox(height: 20),
-                    if (_errorMessage.isNotEmpty)
-                      Text(
-                        _errorMessage,
-                        style: const TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
+
+                    // --- رسالة الخطأ ---
+                    if (_errorMessage.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.error_outline,
+                                color: Colors.red[700], size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage,
+                                style: TextStyle(color: Colors.red[700]),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ],
+
+                    const SizedBox(height: 28),
+
+                    // --- بطاقة معلومات التواصل ---
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.teal[800]!, Colors.teal[600]!],
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.teal.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 20, horizontal: 6),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.support_agent,
+                                    color: Colors.white70, size: 50),
+                                SizedBox(width: 8),
+                                Text(
+                                  'إن اعجبك التطبيق يرجى التواصل \n عن طريق الارقام الآتية:',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            const Divider(color: Colors.white24, thickness: 1),
+                            const SizedBox(height: 14),
+
+                            // الأرقام
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _buildPhoneChip('0944367326'),
+                                const SizedBox(width: 5),
+                                _buildPhoneChip('0935017509'),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+                            const Divider(color: Colors.white24, thickness: 1),
+
+                            // الاسم
+                            const Text(
+                              'المحاسب عدنان محمد الحجي ',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                'أبو فراس',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  // widget مساعد لعرض رقم الهاتف بشكل أنيق
+  Widget _buildPhoneChip(String number) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.phone, color: Colors.white70, size: 14),
+          const SizedBox(width: 6),
+          Text(
+            number,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ],
       ),
     );
   }
