@@ -7,10 +7,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # ============================================
-  # JOB 1: نسخة الاختبار (TEST) - بدون حماية
-  # ============================================
-  build-test-windows:
+  build-windows-x64:
     runs-on: windows-latest
     steps:
       - name: Checkout Repository
@@ -32,231 +29,76 @@ jobs:
         with:
           arch: x64
 
-      - name: Build Windows Test Version (Debug)
-        run: flutter build windows --debug
+      - name: Install VC++ Redistributable (x64)
+        run: |
+          Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"
+          Start-Process -FilePath "./vc_redist.x64.exe" -ArgumentList "/install", "/quiet", "/norestart" -Wait
+        shell: powershell
 
-      - name: Find Test Build Directory
-        id: test-find
+      - name: Build Windows Release (x64)
+        run: flutter build windows --release
+
+      - name: Debug Folder Structure
+        run: |
+          Write-Host "Debugging build folders..."
+          Get-ChildItem -Path "build" -Recurse | Where-Object {$_.Name -like "*.dll" -or $_.Name -like "*.exe"} | Select-Object FullName
+        shell: powershell
+
+      - name: Collect Required DLLs
         run: |
           $releaseDir = $null
           $searchPaths = @(
-            "build/windows/x64/runner/Debug",
-            "build/windows/runner/Debug",
-            "build/windows/x64/windows/runner/Debug"
+            "build/windows/x64/runner/Release",
+            "build/windows/runner/Release",
+            "build/windows/x64/windows/runner/Release"
           )
           foreach ($path in $searchPaths) {
-            if (Test-Path "$path/*.exe") { 
-              $releaseDir = $path
-              break
+            if (Test-Path "$path/*.exe") { $releaseDir = $path; break }
+          }
+          if (-not $releaseDir) { Write-Host "Error: release dir not found"; exit 1 }
+          Write-Host "Found: $releaseDir"
+
+          $vcDlls = @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+          foreach ($dll in $vcDlls) {
+            $dest = "$releaseDir\$dll"
+            if (-not (Test-Path $dest)) {
+              $src = "C:\Windows\System32\$dll"
+              if (Test-Path $src) { Copy-Item $src $dest -Force; Write-Host "Copied $dll" }
+              else { Write-Host "Warning: $dll not found" }
+            } else { Write-Host "OK $dll" }
+          }
+
+          $pluginDlls = @("sqlite3.dll", "sqlite3.x64.windows.dll")
+          foreach ($dll in $pluginDlls) {
+            $dest = "$releaseDir\$dll"
+            if (Test-Path $dest) { Write-Host "OK $dll"; continue }
+            $found = $false
+            :loop foreach ($pattern in @("build/**/$dll", "build/windows/**/$dll", "build/windows/x64/**/$dll")) {
+              $files = Get-ChildItem -Path $pattern -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.FullName -ne $dest }
+              if ($files) {
+                foreach ($f in $files) {
+                  if ($f.Directory.FullName -eq $releaseDir) { continue }
+                  Copy-Item $f.FullName $dest -Force; Write-Host "Copied $dll"; $found = $true; break :loop
+                }
+              }
             }
+            if (-not $found) { Write-Host "Warning: $dll not found" }
           }
-          if (-not $releaseDir) { 
-            Write-Host "Error: Test build directory not found"
-            exit 1 
+        shell: powershell
+
+      - name: Package as ZIP
+        run: |
+          $releaseDir = $null
+          foreach ($path in @("build/windows/x64/runner/Release","build/windows/runner/Release","build/windows/x64/windows/runner/Release")) {
+            if (Test-Path "$path/*.exe") { $releaseDir = $path; break }
           }
-          Write-Host "TEST_DIR=$releaseDir" >> $env:GITHUB_OUTPUT
-          Write-Host "Found test build at: $releaseDir"
+          if (-not $releaseDir) { Write-Host "Error: release dir not found"; exit 1 }
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath "windows-app-x64.zip" -Force
+          Write-Host "Created: windows-app-x64.zip"
         shell: powershell
 
-      - name: Package Test Version as ZIP
-        run: |
-          $testDir = "${{ steps.test-find.outputs.TEST_DIR }}"
-          Compress-Archive -Path "$testDir/*" -DestinationPath "windows-app-test.zip" -Force
-          Write-Host "Created: windows-app-test.zip"
-        shell: powershell
-
-      - name: Upload Test Artifact
+      - name: Upload ZIP Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: test-windows-x64
-          path: windows-app-test.zip
-          retention-days: 7  # تحذف بعد 7 أيام (للتوفير)
-
-  # ============================================
-  # JOB 2: نسخة الإنتاج (CUSTOMER) - مع حماية كاملة
-  # ============================================
-  build-release-windows:
-    runs-on: windows-latest
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Install Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-
-      - name: Flutter Clean
-        run: flutter clean
-
-      - name: Flutter Pub Get
-        run: flutter pub get
-
-      - name: Setup Visual Studio C++ Build Tools
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x64
-
-      # ---------- الحماية 1: Obfuscation ----------
-      - name: Build Secured Windows Release
-        run: |
-          flutter build windows --release `
-            --obfuscate `
-            --split-debug-info=./debug-info `
-            --dart-define=ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY || 'default-key-32-chars-long!!!' }}
-        env:
-          ENCRYPTION_KEY: ${{ secrets.ENCRYPTION_KEY }}
-
-      # ---------- الحماية 2: حذف ملفات الـ Debug ----------
-      - name: Remove Debug Files
-        run: |
-          # حذف ملفات .pdb (Debug symbols)
-          Get-ChildItem -Path "build/windows/x64/runner/Release" -Filter "*.pdb" | Remove-Item -Force
-          Get-ChildItem -Path "build/windows/x64/runner/Release" -Filter "*.exp" | Remove-Item -Force
-          Get-ChildItem -Path "build/windows/x64/runner/Release" -Filter "*.lib" | Remove-Item -Force
-          Write-Host "Debug files removed"
-        shell: powershell
-
-      # ---------- الحماية 3: التحقق من الملفات ----------
-      - name: Verify Build
-        run: |
-          $releaseDir = "build/windows/x64/runner/Release"
-          if (-not (Test-Path "$releaseDir/*.exe")) {
-            Write-Host "Error: Release build failed"
-            exit 1
-          }
-          Write-Host "✓ Release build successful"
-          Write-Host "✓ Obfuscation applied"
-          
-          # عرض حجم الملف
-          $exeFile = Get-ChildItem "$releaseDir/*.exe" | Select-Object -First 1
-          Write-Host "✓ EXE Size: $([math]::Round($exeFile.Length/1MB, 2)) MB"
-        shell: powershell
-
-      # ---------- الحماية 4: Code Signing (إذا توفرت الشهادة) ----------
-      - name: Code Signing
-        if: false  # تعطيل التوقيع مؤقتاً
-        run: |
-          # تثبيت Windows SDK للتوقيع
-          choco install windows-sdk-10.1 -y --no-progress
-          
-          # توقيع الـ EXE
-          $exePath = "build/windows/x64/runner/Release/*.exe"
-          & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe" sign `
-            /fd SHA256 `
-            /f ${{ secrets.CERT_PATH }} `
-            /p ${{ secrets.CERT_PASSWORD }} `
-            /tr http://timestamp.digicert.com `
-            /td SHA256 `
-            $exePath
-          Write-Host "✓ Code signing completed"
-        shell: powershell
-
-      # ---------- الحماية 5: UPX Compression (اختياري) ----------
-      - name: UPX Compression
-        run: |
-          # تحميل UPX
-          Invoke-WebRequest -Uri "https://github.com/upx/upx/releases/download/v4.2.4/upx-4.2.4-win64.zip" -OutFile "upx.zip"
-          Expand-Archive upx.zip -DestinationPath .
-          
-          # ضغط الـ EXE (تخفيض الحجم + تشويش إضافي)
-          $exePath = "build/windows/x64/runner/Release/*.exe"
-          .\upx-4.2.4-win64\upx.exe --best --lzma --compress-resources=0 $exePath
-          
-          Write-Host "✓ UPX compression completed"
-        shell: powershell
-
-      # ---------- تجميع الملفات النهائية ----------
-      - name: Collect Release Files
-        run: |
-          $releaseDir = "build/windows/x64/runner/Release"
-          $packageDir = "package_temp"
-          
-          # إنشاء مجلد مؤقت للتجميع
-          New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
-          
-          # نسخ جميع ملفات الـ Release
-          Copy-Item "$releaseDir/*" -Destination $packageDir -Recurse
-          
-          # إنشاء ملف README للزبون
-          @"
-          ========================================
-          تطبيق [اسم التطبيق]
-          ========================================
-          
-          ✅ التطبيق محمي بالكامل
-          ✅ تم استخدام Obfuscation لحماية الكود
-          ✅ تم توقيع التطبيق رقمياً
-          ✅ تم ضغط الملفات لحماية إضافية
-          
-          🔧 طريقة التشغيل:
-          - انقر مزدوجاً على ملف .exe
-          - لا حاجة للتثبيت
-          
-          📁 موقع حفظ البيانات:
-          C:\Users\[اسم المستخدم]\Documents\[اسم التطبيق]
-          
-          للإستفسار: [بريدك الإلكتروني]
-          ========================================
-          "@ | Out-File -FilePath "$packageDir/README.txt" -Encoding UTF8
-          
-          # إنشاء ZIP نهائي
-          Compress-Archive -Path "$packageDir/*" -DestinationPath "windows-app-release-secured.zip" -Force
-          
-          # حذف المجلد المؤقت
-          Remove-Item $packageDir -Recurse -Force
-          
-          Write-Host "✓ Release package created: windows-app-release-secured.zip"
-        shell: powershell
-
-      # ---------- رفع النسخة المحمية ----------
-      - name: Upload Secured Release Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-windows-secured
-          path: windows-app-release-secured.zip
-          retention-days: 90  # تحفظ لمدة أطول للتسليم
-
-      # ---------- رفع Debug Symbols للتحليل (خاص بالمطور فقط) ----------
-      - name: Upload Debug Symbols (Private)
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-symbols
-          path: debug-info/
-          retention-days: 30
-
-  # ============================================
-  # JOB 3: إحصائيات الأمان (اختياري)
-  # ============================================
-  security-report:
-    runs-on: windows-latest
-    needs: build-release-windows
-    if: always()
-    steps:
-      - name: Generate Security Report
-        run: |
-          @"
-          ========================================
-          تقرير أمان النسخة النهائية
-          ========================================
-          
-          ✅ Obfuscation: مفعل
-          ✅ Code Signing: $(if('${{ secrets.CERT_PASSWORD }}' -ne '') { 'مفعل' } else { 'غير مفعل' })
-          ✅ UPX Compression: مفعل
-          ✅ Debug Symbols: منفصل ومحفوظ
-          ✅ JSON Encryption: يجب تفعيله في الكود
-          
-          تاريخ البناء: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-          
-          ========================================
-          "@ | Out-File -FilePath "security-report.txt" -Encoding UTF8
-          
-          Write-Host "✓ Security report generated"
-        shell: powershell
-
-      - name: Upload Security Report
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-report
-          path: security-report.txt
-          retention-days: 90
+          name: release-windows-x64
+          path: windows-app-x64.zip
