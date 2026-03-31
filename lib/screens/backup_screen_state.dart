@@ -4,6 +4,7 @@ import 'package:archive/archive_io.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 
 class _BackupInfo {
   final String path;
@@ -61,18 +62,47 @@ class _BackupScreenState extends State<BackupScreen> {
 
   String _pad(int v) => v.toString().padLeft(2, '0');
 
+  // ============================================
+  // دالة متوافقة مع Android و Windows
+  // ============================================
   Future<String?> _getAppDataPath() async {
     try {
-      final dir = await getExternalStorageDirectory();
-      return dir?.path;
+      if (Platform.isAndroid) {
+        final dir = await getExternalStorageDirectory();
+        return dir?.path;
+      } else if (Platform.isWindows) {
+        final dir = await getApplicationDocumentsDirectory();
+        return dir.path;
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        return dir.path;
+      }
     } catch (_) {
       return null;
     }
   }
 
+  // ============================================
+  // دالة الحصول على مجلد النسخ الاحتياطي (متوافق)
+  // ============================================
   Future<Directory> _getBackupFolder() async {
-    final dir = Directory('/storage/emulated/0/Download/MarketLedger_Backups');
-    if (!await dir.exists()) await dir.create(recursive: true);
+    Directory dir;
+
+    if (Platform.isAndroid) {
+      // Android: استخدم مجلد Download
+      dir = Directory('/storage/emulated/0/Download/MarketLedger_Backups');
+    } else if (Platform.isWindows) {
+      // Windows: استخدم مجلد Documents/MyAppBackups
+      final documents = await getApplicationDocumentsDirectory();
+      dir = Directory('${documents.path}/MarketLedger_Backups');
+    } else {
+      final documents = await getApplicationDocumentsDirectory();
+      dir = Directory('${documents.path}/MarketLedger_Backups');
+    }
+
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
     return dir;
   }
 
@@ -100,9 +130,12 @@ class _BackupScreenState extends State<BackupScreen> {
       for (final folderName in _folders) {
         final folder = Directory('$appPath/$folderName');
         if (!await folder.exists()) continue;
+
         await for (final entity in folder.list(recursive: true)) {
           if (entity is File) {
-            encoder.addFile(entity, entity.path.replaceFirst('$appPath/', ''));
+            // الحفاظ على هيكل المجلدات في ملف ZIP
+            final relativePath = entity.path.replaceFirst('$appPath/', '');
+            encoder.addFile(entity, relativePath);
             count++;
           }
         }
@@ -111,7 +144,11 @@ class _BackupScreenState extends State<BackupScreen> {
       encoder.close();
 
       if (count == 0) {
-        File(zipPath).deleteSync();
+        // حذف ملف ZIP الفارغ
+        final emptyZip = File(zipPath);
+        if (await emptyZip.exists()) {
+          await emptyZip.delete();
+        }
         throw Exception('لم يتم العثور على ملفات بيانات');
       }
 
@@ -124,10 +161,21 @@ class _BackupScreenState extends State<BackupScreen> {
       await _loadBackups();
 
       if (mounted) {
-        await Share.shareXFiles(
-          [XFile(zipPath)],
-          text: 'نسخة احتياطية – سجل السوق  $ts',
-        );
+        try {
+          await Share.shareXFiles(
+            [XFile(zipPath)],
+            text: 'نسخة احتياطية – سجل السوق $ts',
+          );
+        } catch (e) {
+          // Windows قد لا يدعم المشاركة بنفس الطريقة
+          if (kDebugMode) {
+            debugPrint('⚠️ مشاركة غير مدعومة على هذا النظام: $e');
+          }
+          _showInfoDialog(
+            'تم النسخ الاحتياطي ✓',
+            'تم حفظ النسخة في:\n${backupDir.path}\n\nاسم الملف: backup_$ts.zip',
+          );
+        }
       }
     } catch (e) {
       setState(() {
@@ -169,16 +217,16 @@ class _BackupScreenState extends State<BackupScreen> {
       final appPath = await _getAppDataPath();
       if (appPath == null) throw Exception('تعذّر الوصول إلى مجلد البيانات');
 
-      final bytes = File(zipPath).readAsBytesSync();
+      // قراءة ملف ZIP
+      final bytes = await File(zipPath).readAsBytes();
       final archive = ZipDecoder().decodeBytes(bytes);
       int count = 0;
 
       for (final file in archive) {
         if (!file.isFile) continue;
-        final data = file.content as List<int>;
-        final String targetPath;
 
-        targetPath = '$appPath/${file.name}';
+        final data = file.content as List<int>;
+        final targetPath = '$appPath/${file.name}';
 
         final out = File(targetPath);
         await out.parent.create(recursive: true);
@@ -211,6 +259,7 @@ class _BackupScreenState extends State<BackupScreen> {
     try {
       final dir = await _getBackupFolder();
       final List<_BackupInfo> list = [];
+
       await for (final f in dir.list()) {
         if (f is File && f.path.endsWith('.zip')) {
           final stat = await f.stat();
@@ -221,9 +270,14 @@ class _BackupScreenState extends State<BackupScreen> {
           ));
         }
       }
+
       list.sort((a, b) => b.date.compareTo(a.date));
       if (mounted) setState(() => _backups = list);
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) {
+        debugPrint('⚠️ خطأ في تحميل النسخ الاحتياطية: $e');
+      }
+    }
   }
 
   Future<void> _deleteBackup(_BackupInfo backup) async {
@@ -247,6 +301,11 @@ class _BackupScreenState extends State<BackupScreen> {
     if (ok == true) {
       await File(backup.path).delete();
       await _loadBackups();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ تم حذف النسخة الاحتياطية')),
+        );
+      }
     }
   }
 
