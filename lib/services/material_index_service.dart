@@ -23,20 +23,17 @@ class MaterialIndexService {
 
   Future<String> _getFilePath() async {
     Directory? directory;
-
     if (Platform.isAndroid) {
       directory = await getExternalStorageDirectory();
     } else {
       directory = await getApplicationDocumentsDirectory();
     }
 
-    final folderPath = '${directory!.path}/MaterialIndex';
-    final folder = Directory(folderPath);
-    if (!await folder.exists()) {
-      await folder.create(recursive: true);
-    }
+    final basePath = '${directory!.path}/MarketLedger/MaterialIndex';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) await folder.create(recursive: true);
 
-    return '$folderPath/$_fileName';
+    return '$basePath/$_fileName';
   }
 
   Future<void> _loadMaterials() async {

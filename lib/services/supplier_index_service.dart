@@ -108,12 +108,12 @@ class SupplierIndexService implements EnhancedIndexService {
     } else {
       directory = await getApplicationDocumentsDirectory();
     }
-    final folderPath = '${directory!.path}/SupplierIndex';
-    final folder = Directory(folderPath);
-    if (!await folder.exists()) {
-      await folder.create(recursive: true);
-    }
-    return '$folderPath/$_fileName';
+
+    final basePath = '${directory!.path}/MarketLedger/SupplierIndex';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) await folder.create(recursive: true);
+
+    return '$basePath/$_fileName';
   }
 
   Future<void> _loadSuppliers() async {

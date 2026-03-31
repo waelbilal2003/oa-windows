@@ -67,16 +67,14 @@ class _BackupScreenState extends State<BackupScreen> {
   // ============================================
   Future<String?> _getAppDataPath() async {
     try {
+      Directory? dir;
       if (Platform.isAndroid) {
-        final dir = await getExternalStorageDirectory();
-        return dir?.path;
-      } else if (Platform.isWindows) {
-        final dir = await getApplicationDocumentsDirectory();
-        return dir.path;
+        dir = await getExternalStorageDirectory();
       } else {
-        final dir = await getApplicationDocumentsDirectory();
-        return dir.path;
+        dir = await getApplicationDocumentsDirectory();
       }
+      // الرجوع إلى المجلد الرئيسي MarketLedger
+      return '${dir!.path}/MarketLedger';
     } catch (_) {
       return null;
     }
@@ -89,10 +87,8 @@ class _BackupScreenState extends State<BackupScreen> {
     Directory dir;
 
     if (Platform.isAndroid) {
-      // Android: استخدم مجلد Download
       dir = Directory('/storage/emulated/0/Download/MarketLedger_Backups');
     } else if (Platform.isWindows) {
-      // Windows: استخدم مجلد Documents/MyAppBackups
       final documents = await getApplicationDocumentsDirectory();
       dir = Directory('${documents.path}/MarketLedger_Backups');
     } else {
@@ -100,9 +96,7 @@ class _BackupScreenState extends State<BackupScreen> {
       dir = Directory('${documents.path}/MarketLedger_Backups');
     }
 
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
+    if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
   }
 

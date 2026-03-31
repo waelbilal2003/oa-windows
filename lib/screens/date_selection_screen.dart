@@ -36,6 +36,19 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
     });
   }
 
+  void _navigateToDailyMovement() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DailyMovementScreen(
+          selectedDate:
+              '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
+          storeType: widget.storeType,
+          sellerName: widget.sellerName ?? 'غير معروف',
+        ),
+      ),
+    );
+  }
+
   Widget _buildCompactPicker(
     String label,
     int currentValue,
@@ -138,86 +151,87 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
         ),
         body: Directionality(
           textDirection: TextDirection.rtl,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: Text(
-                    '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black54,
-                    ),
-                  ),
-                ),
-              ),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildCompactPicker(
-                      'اليوم',
-                      _selectedDate.day,
-                      () => _updateDate(day: _selectedDate.day + 1),
-                      () => _updateDate(day: _selectedDate.day - 1),
-                    ),
-                    _buildCompactPicker(
-                      'الشهر',
-                      _selectedDate.month,
-                      () => _updateDate(month: _selectedDate.month + 1),
-                      () => _updateDate(month: _selectedDate.month - 1),
-                      isMonth: true,
-                    ),
-                    _buildCompactPicker(
-                      'السنة',
-                      _selectedDate.year,
-                      () => _updateDate(year: _selectedDate.year + 1),
-                      () => _updateDate(year: _selectedDate.year - 1),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Center(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => DailyMovementScreen(
-                            selectedDate:
-                                '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
-                            storeType: widget.storeType,
-                            sellerName: widget.sellerName ?? 'غير معروف',
-                          ),
+          child: CallbackShortcuts(
+            bindings: {
+              // إضافة اختصار زر Enter للدخول
+              const SingleActivator(LogicalKeyboardKey.enter):
+                  _navigateToDailyMovement,
+              const SingleActivator(LogicalKeyboardKey.numpadEnter):
+                  _navigateToDailyMovement,
+            },
+            child: Focus(
+              autofocus: true,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: Text(
+                        '${_selectedDate.year}/${_selectedDate.month}/${_selectedDate.day}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black54,
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[600],
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 60,
-                        vertical: 18,
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 4,
-                    ),
-                    icon: const Icon(Icons.check_circle_outline, size: 24),
-                    label: const Text(
-                      'دخــول',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                   ),
-                ),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildCompactPicker(
+                          'اليوم',
+                          _selectedDate.day,
+                          () => _updateDate(day: _selectedDate.day + 1),
+                          () => _updateDate(day: _selectedDate.day - 1),
+                        ),
+                        _buildCompactPicker(
+                          'الشهر',
+                          _selectedDate.month,
+                          () => _updateDate(month: _selectedDate.month + 1),
+                          () => _updateDate(month: _selectedDate.month - 1),
+                          isMonth: true,
+                        ),
+                        _buildCompactPicker(
+                          'السنة',
+                          _selectedDate.year,
+                          () => _updateDate(year: _selectedDate.year + 1),
+                          () => _updateDate(year: _selectedDate.year - 1),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Center(
+                      child: ElevatedButton.icon(
+                        onPressed: _navigateToDailyMovement,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green[600],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 60,
+                            vertical: 18,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                        ),
+                        icon: const Icon(Icons.check_circle_outline, size: 24),
+                        label: const Text(
+                          'دخــول',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

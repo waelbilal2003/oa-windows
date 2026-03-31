@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 class SalesStorageService {
   Future<String> _getBasePath() async {
     Directory? directory;
-
     if (Platform.isAndroid) {
       directory = await getExternalStorageDirectory();
     } else if (Platform.isWindows) {
@@ -16,7 +15,11 @@ class SalesStorageService {
       directory = await getApplicationDocumentsDirectory();
     }
 
-    return directory!.path;
+    final basePath = '${directory!.path}/MarketLedger/SalesJournals';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) await folder.create(recursive: true);
+
+    return basePath;
   }
 
   // اسم الملف الآن يحتوي فقط على التاريخ - مثل المشتريات

@@ -12,7 +12,11 @@ class BoxStorageService {
     } else {
       directory = await getApplicationDocumentsDirectory();
     }
-    return directory!.path;
+    // توحيد المسار في مجلد MarketLedger
+    final basePath = '${directory!.path}/MarketLedger';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) await folder.create(recursive: true);
+    return basePath;
   }
 
   // *** تعديل: هذه الدالة الآن هي الأساس وتعتمد على التاريخ فقط ***

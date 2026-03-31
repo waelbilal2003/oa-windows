@@ -23,20 +23,17 @@ class PackagingIndexService {
 
   Future<String> _getFilePath() async {
     Directory? directory;
-
     if (Platform.isAndroid) {
       directory = await getExternalStorageDirectory();
     } else {
       directory = await getApplicationDocumentsDirectory();
     }
 
-    final folderPath = '${directory!.path}/PackagingIndex';
-    final folder = Directory(folderPath);
-    if (!await folder.exists()) {
-      await folder.create(recursive: true);
-    }
+    final basePath = '${directory!.path}/MarketLedger/PackagingIndex';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) await folder.create(recursive: true);
 
-    return '$folderPath/$_fileName';
+    return '$basePath/$_fileName';
   }
 
   Future<void> _loadPackagings() async {

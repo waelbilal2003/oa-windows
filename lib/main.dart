@@ -313,7 +313,20 @@ class _MyAppState extends State<MyApp> {
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(_fontScale),
           ),
-          child: child!,
+          child: CallbackShortcuts(
+            bindings: {
+              // إضافة اختصار زر ESC للتراجع إلى الشاشة السابقة
+              const SingleActivator(LogicalKeyboardKey.escape): () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              },
+            },
+            child: Focus(
+              autofocus: true,
+              child: child!,
+            ),
+          ),
         );
       },
     );

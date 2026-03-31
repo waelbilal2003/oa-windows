@@ -135,7 +135,7 @@ jobs:
 
       # ---------- الحماية 4: Code Signing (إذا توفرت الشهادة) ----------
       - name: Code Signing
-        if: secrets.CERT_PASSWORD != ''
+        if: false  # تعطيل التوقيع مؤقتاً
         run: |
           # تثبيت Windows SDK للتوقيع
           choco install windows-sdk-10.1 -y --no-progress

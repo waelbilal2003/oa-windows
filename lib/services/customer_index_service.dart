@@ -60,20 +60,18 @@ class CustomerIndexService {
 
   Future<String> _getFilePath() async {
     Directory? directory;
-
     if (Platform.isAndroid) {
       directory = await getExternalStorageDirectory();
     } else {
       directory = await getApplicationDocumentsDirectory();
     }
 
-    final folderPath = '${directory!.path}/CustomerIndex';
-    final folder = Directory(folderPath);
-    if (!await folder.exists()) {
-      await folder.create(recursive: true);
-    }
+    // توحيد المسار
+    final basePath = '${directory!.path}/MarketLedger/CustomerIndex';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) await folder.create(recursive: true);
 
-    return '$folderPath/$_fileName';
+    return '$basePath/$_fileName';
   }
 
   Future<void> _loadCustomers() async {
