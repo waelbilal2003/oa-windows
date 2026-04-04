@@ -7,6 +7,7 @@ import 'settings_screen.dart';
 import 'opening_balances_screen.dart';
 import 'account_summary_screen.dart';
 import 'backup_screen_state.dart';
+import '../widgets/exit_button.dart';
 
 class PreferencesScreen extends StatefulWidget {
   final String selectedDate;
@@ -20,28 +21,48 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   final CustomerIndexService _customerIndexService = CustomerIndexService();
   final SupplierIndexService _supplierIndexService = SupplierIndexService();
   String _storeName = 'اسم المتجر';
+
+  void _handleBackButton() {
+    Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('التفصيلات'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
         backgroundColor: Colors.blueGrey[600],
         foregroundColor: Colors.white,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: _handleBackButton,
+            ),
+            const Text(
+              'التفصيلات',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
         centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // الصف الأول
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildMenuButton(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isSmallScreen = constraints.maxWidth < 500;
+
+            if (isSmallScreen) {
+              return Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildMenuButton(
                         context,
                         icon: Icons.account_balance,
                         label: 'تفصيلات\nالحساب',
@@ -57,10 +78,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildMenuButton(
+                      const SizedBox(height: 16.0),
+                      _buildMenuButton(
                         context,
                         icon: Icons.people,
                         label: 'تفصيلات\nالزبائن',
@@ -80,10 +99,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildMenuButton(
+                      const SizedBox(height: 16.0),
+                      _buildMenuButton(
                         context,
                         icon: Icons.store,
                         label: 'تفصيلات\nالموردين',
@@ -103,17 +120,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           );
                         },
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              // الصف الثاني
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildMenuButton(
+                      const SizedBox(height: 16.0),
+                      _buildMenuButton(
                         context,
                         icon: Icons.attach_money,
                         label: 'أرصدة\nالبداية',
@@ -129,10 +137,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildMenuButton(
+                      const SizedBox(height: 16.0),
+                      _buildMenuButton(
                         context,
                         icon: Icons.backup,
                         label: 'النسخ\nالاحتياطي',
@@ -146,10 +152,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                           );
                         },
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildMenuButton(
+                      const SizedBox(height: 16.0),
+                      _buildMenuButton(
                         context,
                         icon: Icons.settings,
                         label: 'إعدادات\nأخرى',
@@ -160,18 +164,146 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                             MaterialPageRoute(
                               builder: (_) => SettingsScreen(
                                 selectedDate: widget.selectedDate,
-                                storeName: _storeName, // تمرير اسم المتجر
+                                storeName: _storeName,
                               ),
                             ),
                           );
                         },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              );
+            } else {
+              return Center(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.account_balance,
+                            label: 'تفصيلات\nالحساب',
+                            color: Colors.indigo[700]!,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => AccountSummaryScreen(
+                                    selectedDate: widget.selectedDate,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 80.0),
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.people,
+                            label: 'تفصيلات\nالزبائن',
+                            color: Colors.teal[600]!,
+                            onTap: () async {
+                              final customers = await _customerIndexService
+                                  .getAllCustomersWithData();
+                              if (!mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => CustomerPreferencesListScreen(
+                                    selectedDate: widget.selectedDate,
+                                    customers: customers,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 80.0),
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.store,
+                            label: 'تفصيلات\nالموردين',
+                            color: Colors.brown[600]!,
+                            onTap: () async {
+                              final suppliers = await _supplierIndexService
+                                  .getAllSuppliersWithData();
+                              if (!mounted) return;
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SupplierPreferencesListScreen(
+                                    selectedDate: widget.selectedDate,
+                                    suppliers: suppliers,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20.0),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.attach_money,
+                            label: 'أرصدة\nالبداية',
+                            color: Colors.deepOrange[700]!,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => OpeningBalancesScreen(
+                                    selectedDate: widget.selectedDate,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 80.0),
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.backup,
+                            label: 'النسخ\nالاحتياطي',
+                            color: const Color(0xFF0F4C5C),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const BackupScreen(),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(width: 80.0),
+                          _buildMenuButton(
+                            context,
+                            icon: Icons.settings,
+                            label: 'إعدادات\nأخرى',
+                            color: Colors.grey[700]!,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => SettingsScreen(
+                                    selectedDate: widget.selectedDate,
+                                    storeName: _storeName,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          },
         ),
       ),
     );
@@ -192,6 +324,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
+          width: 350,
+          height: 300,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -202,13 +336,20 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
               ],
             ),
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: color.withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 icon,
-                size: 48,
+                size: 42,
                 color: Colors.white,
               ),
               const SizedBox(height: 12),
@@ -217,8 +358,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 18,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  letterSpacing: 0.5,
                 ),
               ),
             ],

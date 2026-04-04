@@ -84,7 +84,7 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
             children: [
               SizedBox(
                 width: 140,
-                height: 50,
+                height: 80,
                 child: ElevatedButton(
                   onPressed: _handleBackButton,
                   style: ElevatedButton.styleFrom(

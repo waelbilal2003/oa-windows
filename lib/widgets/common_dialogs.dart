@@ -155,44 +155,7 @@ void showCashOrDebtDialog({
                         padding: const EdgeInsets.all(12),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            ElevatedButton(
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop();
-                                onSelected(options[selectedIndex]);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red[700],
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 24, vertical: 10),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text(
-                                'تأكيد',
-                                style: TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop();
-                                onCancel();
-                              },
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 20, vertical: 10),
-                              ),
-                              child: const Text(
-                                'إلغاء',
-                                style:
-                                    TextStyle(fontSize: 16, color: Colors.grey),
-                              ),
-                            ),
-                          ],
+                          children: [],
                         ),
                       ),
                     ],
