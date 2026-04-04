@@ -144,9 +144,7 @@ class SalesStorageService {
       for (var file in files) {
         if (file is File && file.path.endsWith('.json')) {
           try {
-            final fileName = file.path.split('/').last;
-
-            // التأكد من أن الملف هو لـ SALES فقط
+            final fileName = file.path.split(Platform.pathSeparator).last;
             if (fileName.startsWith('sales-')) {
               final jsonString = await file.readAsString();
               final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/store_db_service.dart';
 import 'daily_movement/purchases_screen.dart';
 import 'daily_movement/sales_screen.dart';
@@ -25,11 +26,19 @@ class DailyMovementScreen extends StatefulWidget {
 
 class _DailyMovementScreenState extends State<DailyMovementScreen> {
   String _storeName = '';
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _loadStoreName();
+    _focusNode.requestFocus();
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadStoreName() async {
@@ -41,28 +50,68 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
   }
 
   void _handleBackButton() {
-    Navigator.of(context).pop();
+    Navigator.of(context).pop(); // نفس سلوك زر Escape
+  }
+
+  // ignore: unused_element
+  void _handleEscapeKey(RawKeyEvent event) {
+    if (event is RawKeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.escape) {
+      _handleBackButton();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.of(context).pop();
-        return false;
+    return RawKeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.escape) {
+          _handleBackButton();
+        }
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text('الحركة اليومية لتاريخ ${widget.selectedDate}',
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 22)),
-          centerTitle: true,
+          automaticallyImplyLeading: false, // إخفاء سهم الرجوع
+          titleSpacing: 0,
+          toolbarHeight: 70,
           backgroundColor: Colors.green[600],
           foregroundColor: Colors.white,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: _handleBackButton,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: 140,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _handleBackButton,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red[700],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 3,
+                  ),
+                  child: const Text(
+                    'خروج',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              Text(
+                'الحركة اليومية لتاريخ ${widget.selectedDate}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+              const SizedBox(width: 140),
+            ],
           ),
+          centerTitle: true,
         ),
         body: Directionality(
           textDirection: TextDirection.rtl,
@@ -91,132 +140,125 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                       final isSmallScreen = constraints.maxWidth < 500;
 
                       if (isSmallScreen) {
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Expanded(
-                              child: _buildMenuButton(
-                                context,
-                                icon: Icons.point_of_sale,
-                                label: 'المبيعات',
-                                color: Colors.orange[700]!,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => SalesScreen(
-                                          sellerName: widget.sellerName,
-                                          selectedDate: widget.selectedDate,
-                                          storeName: _storeName),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12.0),
-                            Expanded(
-                              child: _buildMenuButton(
-                                context,
-                                icon: Icons.shopping_cart,
-                                label: 'المشتريات',
-                                color: Colors.red[700]!,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => PurchasesScreen(
-                                          sellerName: widget.sellerName,
-                                          selectedDate: widget.selectedDate,
-                                          storeName: _storeName),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12.0),
-                            Expanded(
-                              child: _buildMenuButton(
-                                context,
-                                icon: Icons.receipt_long,
-                                label: 'الفواتير',
-                                color: Colors.blueGrey[600]!,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          InvoiceTypeSelectionScreen(
-                                        selectedDate: widget.selectedDate,
-                                        storeName: _storeName,
+                        return Center(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _buildMenuButton(
+                                  context,
+                                  icon: Icons.point_of_sale,
+                                  label: 'المبيعات',
+                                  color: Colors.orange[700]!,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => SalesScreen(
+                                            sellerName: widget.sellerName,
+                                            selectedDate: widget.selectedDate,
+                                            storeName: _storeName),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12.0),
-                            Expanded(
-                              child: _buildMenuButton(
-                                context,
-                                icon: Icons.analytics,
-                                label: 'التفصيلات',
-                                color: Colors.blueGrey[700]!,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => PreferencesScreen(
-                                        selectedDate: widget.selectedDate,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16.0),
+                                _buildMenuButton(
+                                  context,
+                                  icon: Icons.shopping_cart,
+                                  label: 'المشتريات',
+                                  color: Colors.red[700]!,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => PurchasesScreen(
+                                            sellerName: widget.sellerName,
+                                            selectedDate: widget.selectedDate,
+                                            storeName: _storeName),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12.0),
-                            Expanded(
-                              child: _buildMenuButton(
-                                context,
-                                icon: Icons.account_balance,
-                                label: 'الصندوق',
-                                color: Colors.indigo[700]!,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => BoxScreen(
-                                          sellerName: widget.sellerName,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16.0),
+                                _buildMenuButton(
+                                  context,
+                                  icon: Icons.receipt_long,
+                                  label: 'الفواتير',
+                                  color: Colors.blueGrey[600]!,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            InvoiceTypeSelectionScreen(
                                           selectedDate: widget.selectedDate,
-                                          storeName: _storeName),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 12.0),
-                            Expanded(
-                              child: _buildMenuButton(
-                                context,
-                                icon: Icons.inventory_2,
-                                label: 'البايت',
-                                color: Colors.teal[700]!,
-                                onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) => BaitScreen(
-                                        selectedDate: widget.selectedDate,
+                                          storeName: _storeName,
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16.0),
+                                _buildMenuButton(
+                                  context,
+                                  icon: Icons.analytics,
+                                  label: 'التفصيلات',
+                                  color: Colors.blueGrey[700]!,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => PreferencesScreen(
+                                          selectedDate: widget.selectedDate,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16.0),
+                                _buildMenuButton(
+                                  context,
+                                  icon: Icons.account_balance,
+                                  label: 'الصندوق',
+                                  color: Colors.indigo[700]!,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => BoxScreen(
+                                            sellerName: widget.sellerName,
+                                            selectedDate: widget.selectedDate,
+                                            storeName: _storeName),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 16.0),
+                                _buildMenuButton(
+                                  context,
+                                  icon: Icons.inventory_2,
+                                  label: 'البايت',
+                                  color: Colors.teal[700]!,
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) => BaitScreen(
+                                          selectedDate: widget.selectedDate,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         );
                       } else {
-                        return Column(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildMenuButton(
+                        return Center(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _buildMenuButton(
                                       context,
                                       icon: Icons.point_of_sale,
                                       label: 'المبيعات',
@@ -233,10 +275,8 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                                         );
                                       },
                                     ),
-                                  ),
-                                  const SizedBox(width: 12.0),
-                                  Expanded(
-                                    child: _buildMenuButton(
+                                    const SizedBox(width: 80.0),
+                                    _buildMenuButton(
                                       context,
                                       icon: Icons.shopping_cart,
                                       label: 'المشتريات',
@@ -255,10 +295,8 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                                         );
                                       },
                                     ),
-                                  ),
-                                  const SizedBox(width: 12.0),
-                                  Expanded(
-                                    child: _buildMenuButton(
+                                    const SizedBox(width: 80.0),
+                                    _buildMenuButton(
                                       context,
                                       icon: Icons.receipt_long,
                                       label: 'الفواتير',
@@ -275,16 +313,13 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                                         );
                                       },
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 12.0),
-                            Expanded(
-                              child: Row(
-                                children: [
-                                  Expanded(
-                                    child: _buildMenuButton(
+                                  ],
+                                ),
+                                const SizedBox(height: 20.0),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _buildMenuButton(
                                       context,
                                       icon: Icons.analytics,
                                       label: 'التفصيلات',
@@ -300,10 +335,8 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                                         );
                                       },
                                     ),
-                                  ),
-                                  const SizedBox(width: 12.0),
-                                  Expanded(
-                                    child: _buildMenuButton(
+                                    const SizedBox(width: 80.0),
+                                    _buildMenuButton(
                                       context,
                                       icon: Icons.account_balance,
                                       label: 'الصندوق',
@@ -320,10 +353,8 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                                         );
                                       },
                                     ),
-                                  ),
-                                  const SizedBox(width: 12.0),
-                                  Expanded(
-                                    child: _buildMenuButton(
+                                    const SizedBox(width: 80.0),
+                                    _buildMenuButton(
                                       context,
                                       icon: Icons.inventory_2,
                                       label: 'البايت',
@@ -338,11 +369,11 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
                                         );
                                       },
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         );
                       }
                     },
@@ -369,6 +400,8 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(16),
         child: Container(
+          width: 350,
+          height: 300,
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,

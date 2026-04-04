@@ -1,4 +1,3 @@
-/*
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,8 +23,8 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  double _fontScalePercent = 0.0;
-  double _iconScalePercent = 0.0;
+  double _fontScalePercent = 0.5;
+  double _iconScalePercent = 0.5;
   bool _isLoading = true;
 
   @override
@@ -37,8 +36,8 @@ class _MyAppState extends State<MyApp> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _fontScalePercent = prefs.getDouble('font_scale_percent') ?? 0.0;
-      _iconScalePercent = prefs.getDouble('icon_scale_percent') ?? 0.0;
+      _fontScalePercent = prefs.getDouble('font_scale_percent') ?? 0.5;
+      _iconScalePercent = prefs.getDouble('icon_scale_percent') ?? 0.5;
       _isLoading = false;
     });
   }
@@ -86,6 +85,7 @@ class _MyAppState extends State<MyApp> {
           style: IconButton.styleFrom(iconSize: 24 * _iconScale),
         ),
         appBarTheme: AppBarTheme(
+          toolbarHeight: 112.0,
           titleTextStyle: TextStyle(
             fontSize: 18 * _fontScale,
             fontWeight: FontWeight.bold,
@@ -144,7 +144,7 @@ class _MyAppState extends State<MyApp> {
   }
 }
 //
-*/
+/*
 
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -320,3 +320,4 @@ class _MyAppState extends State<MyApp> {
         });
   }
 }
+*/

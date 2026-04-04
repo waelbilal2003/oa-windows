@@ -61,7 +61,7 @@ class _BoxScreenState extends State<BoxScreen> {
   late TextEditingController totalPaidController;
 
   // قوائم الخيارات
-  final List<String> accountTypeOptions = ['زبون', 'مورد', 'مصروف'];
+  final List<String> accountTypeOptions = ['مصروف', 'مورد', 'زبون'];
 
   // متحكمات للتمرير
   final ScrollController _verticalScrollController = ScrollController();
@@ -975,50 +975,233 @@ class _BoxScreenState extends State<BoxScreen> {
       return;
     }
 
+    int selectedIndex = accountTypeOptions.indexOf(accountTypeValues[rowIndex]);
+    if (selectedIndex == -1) selectedIndex = 0;
+
+    final FocusNode focusNode = FocusNode();
+
     showDialog(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text(
-            'اختر نوع الحساب',
-            style: TextStyle(fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8.0,
-              runSpacing: 8.0,
-              children: accountTypeOptions.map((option) {
-                return ChoiceChip(
-                  label: Text(option),
-                  selected: option == accountTypeValues[rowIndex],
-                  selectedColor: _getAccountTypeColor(option),
-                  backgroundColor: Colors.grey[200],
-                  onSelected: (bool selected) {
-                    if (selected) {
-                      Navigator.pop(context);
-                      _onAccountTypeSelected(option, rowIndex);
-                    }
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-                _onAccountTypeCancelled(rowIndex);
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return RawKeyboardListener(
+              focusNode: focusNode,
+              autofocus: true,
+              onKey: (RawKeyEvent event) {
+                if (event is RawKeyDownEvent) {
+                  // في الواجهة العربية: السهم الأيمن يتحرك لليسار بصرياً (للخلف في القائمة)
+                  // والسهم الأيسر يتحرك لليمين بصرياً (للأمام في القائمة)
+                  if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                    setState(() {
+                      selectedIndex =
+                          (selectedIndex - 1 + accountTypeOptions.length) %
+                              accountTypeOptions.length;
+                    });
+                  } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                    setState(() {
+                      selectedIndex =
+                          (selectedIndex + 1) % accountTypeOptions.length;
+                    });
+                  } else if (event.logicalKey == LogicalKeyboardKey.enter ||
+                      event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+                    Navigator.of(context).pop();
+                    _onAccountTypeSelected(
+                        accountTypeOptions[selectedIndex], rowIndex);
+                  } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+                    Navigator.of(context).pop();
+                    _onAccountTypeCancelled(rowIndex);
+                  }
+                }
               },
-              child: const Text('إلغاء'),
-            ),
-          ],
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: Dialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  elevation: 8,
+                  child: Container(
+                    width: 400,
+                    constraints: const BoxConstraints(maxWidth: 450),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // العنوان باللون الأزرق ومحاذاة لليمين
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 16),
+                          decoration: BoxDecoration(
+                            color: const Color.fromARGB(255, 14, 82, 184),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                            ),
+                          ),
+                          child: const Align(
+                            alignment: Alignment.centerRight,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'اختر نوع الحساب',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 12),
+                                Icon(Icons.account_balance_wallet,
+                                    color: Colors.white, size: 24),
+                              ],
+                            ),
+                          ),
+                        ),
+                        // الخيارات (ChoiceChip) - ترتيب معكوس ليتناسب مع العربية
+                        // الخيارات (ChoiceChip) مع التصحيح
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 20, horizontal: 16),
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 12.0,
+                            runSpacing: 12.0,
+                            textDirection:
+                                TextDirection.rtl, // ✅ هذا السطر هو الحل
+                            children: List.generate(accountTypeOptions.length,
+                                (index) {
+                              final isSelected = selectedIndex == index;
+                              final option = accountTypeOptions[index];
+                              Color chipColor;
+                              switch (option) {
+                                case 'زبون':
+                                  chipColor = Colors.green;
+                                  break;
+                                case 'مورد':
+                                  chipColor = Colors.blue;
+                                  break;
+                                case 'مصروف':
+                                  chipColor = Colors.red;
+                                  break;
+                                default:
+                                  chipColor = Colors.grey;
+                              }
+                              return MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () {
+                                    Navigator.of(context).pop();
+                                    _onAccountTypeSelected(option, rowIndex);
+                                  },
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(32),
+                                      border: isSelected
+                                          ? Border.all(
+                                              color: chipColor, width: 2)
+                                          : null,
+                                    ),
+                                    child: ChoiceChip(
+                                      label: Text(
+                                        option,
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : chipColor,
+                                          fontWeight: isSelected
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                        ),
+                                      ),
+                                      selected: isSelected,
+                                      selectedColor: chipColor,
+                                      backgroundColor:
+                                          chipColor.withOpacity(0.1),
+                                      elevation: 2,
+                                      pressElevation: 4,
+                                      onSelected: (bool selected) {
+                                        if (selected) {
+                                          Navigator.of(context).pop();
+                                          _onAccountTypeSelected(
+                                              option, rowIndex);
+                                        }
+                                      },
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(32),
+                                        side: BorderSide(
+                                            color: chipColor, width: 0.5),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                        // الأزرار
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _onAccountTypeSelected(
+                                      accountTypeOptions[selectedIndex],
+                                      rowIndex);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 14, 82, 184),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 10),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                                child: const Text(
+                                  'تأكيد',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _onAccountTypeCancelled(rowIndex);
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 20, vertical: 10),
+                                ),
+                                child: const Text(
+                                  'إلغاء',
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.grey),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
-    );
+    ).then((_) {
+      focusNode.dispose();
+    });
   }
 
   void _onAccountTypeSelected(String value, int rowIndex) {

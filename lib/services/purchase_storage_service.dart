@@ -164,9 +164,8 @@ class PurchaseStorageService {
             final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
             final date = jsonMap['date']?.toString() ?? '';
             final journalNumber = jsonMap['recordNumber']?.toString() ?? '1';
-            final fileName = file.path.split('/').last;
-
-            if (fileName.startsWith('purchases-') && date.isNotEmpty) {
+            final fileName = file.path.split(Platform.pathSeparator).last;
+            if (fileName.startsWith('purchases-')) {
               datesWithNumbers.add({
                 'date': date,
                 'journalNumber': journalNumber,
