@@ -115,6 +115,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
   double _grandTotal = 0.0;
 
+  FocusNode? _addButtonFocusNode;
+  int _currentFocusRow = -1;
+  int _currentFocusCol = -1;
+
   @override
   void initState() {
     super.initState();
@@ -127,7 +131,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
     _resetTotalValues();
 
-    // تهيئة المتحكم (هذا ما كان ينقصك)
     _horizontalSuggestionsController = ScrollController();
 
     _verticalScrollController.addListener(() {
@@ -137,6 +140,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     _horizontalScrollController.addListener(() {
       _hideAllSuggestionsImmediately();
     });
+
+    _addButtonFocusNode = FocusNode(); // <-- إضافة
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAdminStatus();
@@ -169,14 +174,35 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     _materialSuggestionsScrollController.dispose();
     _packagingSuggestionsScrollController.dispose();
     _supplierSuggestionsScrollController.dispose();
-
-    // إغلاق المتحكم
     _horizontalSuggestionsController.dispose();
-
+    _addButtonFocusNode?.dispose(); // <-- إضافة
     _balanceTracker.dispose();
     _calculateTotalsDebouncer?.cancel();
     _calculateRowDebouncer?.cancel();
     super.dispose();
+  }
+
+  void _attachFocusListeners(int rowIndex) {
+    for (int col = 0; col < rowFocusNodes[rowIndex].length; col++) {
+      rowFocusNodes[rowIndex][col].removeListener(() {});
+      rowFocusNodes[rowIndex][col].addListener(() {
+        if (rowFocusNodes[rowIndex][col].hasFocus) {
+          _currentFocusRow = rowIndex;
+          _currentFocusCol = col;
+        }
+      });
+    }
+  }
+
+  void _moveFocus(int deltaRow, int deltaCol) {
+    if (_currentFocusRow == -1 || _currentFocusCol == -1) return;
+    int newRow = _currentFocusRow + deltaRow;
+    int newCol = _currentFocusCol + deltaCol;
+    if (newRow >= 0 && newRow < rowFocusNodes.length) {
+      if (newCol >= 0 && newCol < rowFocusNodes[newRow].length) {
+        FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
+      }
+    }
   }
 
   String _extractDayName(String dateString) {
@@ -243,10 +269,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       rowFocusNodes.clear();
       cashOrDebtValues.clear();
       emptiesValues.clear();
-      sellerNames.clear(); // <-- تنظيف قائمة أسماء البائعين
+      sellerNames.clear();
       _resetTotalValues();
       _hasUnsavedChanges = false;
       _addNewRow();
+    });
+
+    // طلب التركيز على زر الإضافة
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _addButtonFocusNode?.requestFocus(); // <-- إضافة
     });
   }
 
@@ -260,12 +291,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
       List<FocusNode> newFocusNodes = List.generate(11, (index) => FocusNode());
 
-      newControllers[0].text = newSerialNumber; // [0] الرقم المسلسل
+      newControllers[0].text = newSerialNumber;
 
-      // إضافة مستمعات للتغيير باستخدام دالة مساعدة
       _addChangeListenersToControllers(newControllers, rowControllers.length);
 
-      // تخزين اسم البائع للصف الجديد
       sellerNames.add(widget.sellerName);
 
       rowControllers.add(newControllers);
@@ -274,7 +303,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       emptiesValues.add('');
     });
 
-    // تركيز الماوس على حقل المادة في السجل الجديد
+    _attachFocusListeners(rowControllers.length - 1); // <-- إضافة
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (rowFocusNodes.isNotEmpty) {
         final newRowIndex = rowFocusNodes.length - 1;
@@ -607,7 +637,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
   void _loadJournal(PurchaseDocument document) {
     setState(() {
-      // تنظيف المتحكمات القديمة
       for (var row in rowControllers) {
         for (var controller in row) {
           controller.dispose();
@@ -619,44 +648,37 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         }
       }
 
-      // إعادة تهيئة القوائم
       rowControllers.clear();
       rowFocusNodes.clear();
       cashOrDebtValues.clear();
       emptiesValues.clear();
       sellerNames.clear();
 
-      // تحميل السجلات من الوثيقة
       for (int i = 0; i < document.purchases.length; i++) {
         var purchase = document.purchases[i];
 
         List<TextEditingController> newControllers = [
-          TextEditingController(text: (i + 1).toString()), // [0] الرقم المسلسل
-          TextEditingController(text: purchase.material), // [1] المادة
-          TextEditingController(text: purchase.affiliation), // [2] المورد
-          TextEditingController(text: purchase.count), // [3] العدد
-          TextEditingController(text: purchase.packaging), // [4] العبوة
-          TextEditingController(text: purchase.standing), // [5] القائم
-          TextEditingController(text: purchase.net), // [6] الصافي
-          TextEditingController(text: purchase.price), // [7] السعر
-          TextEditingController(
-              text: purchase
-                  .total), // [8] الإجمالي ← يُحسب في _calculateRowValues
-          TextEditingController(), // [9]
-          TextEditingController(), // [10]
+          TextEditingController(text: (i + 1).toString()),
+          TextEditingController(text: purchase.material),
+          TextEditingController(text: purchase.affiliation),
+          TextEditingController(text: purchase.count),
+          TextEditingController(text: purchase.packaging),
+          TextEditingController(text: purchase.standing),
+          TextEditingController(text: purchase.net),
+          TextEditingController(text: purchase.price),
+          TextEditingController(text: purchase.total),
+          TextEditingController(),
+          TextEditingController(),
         ];
 
         List<FocusNode> newFocusNodes =
             List.generate(11, (index) => FocusNode());
 
-        // تخزين اسم البائع لهذا الصف
         sellerNames.add(purchase.sellerName);
 
-        // التحقق إذا كان السجل مملوكاً للبائع الحالي
         final bool isOwnedByCurrentSeller =
             purchase.sellerName == widget.sellerName;
 
-        // إضافة مستمعات للتغيير فقط إذا كان السجل مملوكاً للبائع الحالي
         if (isOwnedByCurrentSeller) {
           _addChangeListenersToControllers(newControllers, i);
         }
@@ -666,7 +688,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         cashOrDebtValues.add(purchase.cashOrDebt);
       }
 
-      // تحميل المجاميع
+      // ربط مستمعات التركيز لكل الصفوف المحملة
+      for (int i = 0; i < rowFocusNodes.length; i++) {
+        _attachFocusListeners(i); // <-- إضافة
+      }
+
       if (document.totals.isNotEmpty) {
         totalCountController.text = document.totals['totalCount'] ?? '0';
         totalBaseController.text = document.totals['totalBase'] ?? '0.00';
@@ -677,7 +703,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       _hasUnsavedChanges = false;
     });
 
-    // إعادة حساب المجاميع من البيانات المحملة لضمان صحة الإجمالي
     _calculateAllTotals();
   }
 
@@ -1048,8 +1073,39 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            ExitButton(
-              onPressed: () => Navigator.of(context).pop(),
+            Row(
+              children: [
+                ExitButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 8),
+                Focus(
+                  focusNode: _addButtonFocusNode,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _addNewRow();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (rowFocusNodes.isNotEmpty) {
+                          final newRowIndex = rowFocusNodes.length - 1;
+                          FocusScope.of(context).requestFocus(
+                              rowFocusNodes[newRowIndex]
+                                  [1]); // أول حقل قابل للتحرير
+                        }
+                      });
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('إضافة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.red[700],
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_showFullScreenSuggestions &&
                 _getSuggestionsByType().isNotEmpty)
@@ -1131,7 +1187,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     await _saveCurrentRecord(silent: true);
                   }
                 }
-
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -1146,7 +1201,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             },
             itemBuilder: (BuildContext context) {
               List<PopupMenuEntry<String>> items = [];
-
               if (_isLoadingDates) {
                 items.add(
                   const PopupMenuItem<String>(
@@ -1175,11 +1229,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   ),
                 );
                 items.add(const PopupMenuDivider());
-
                 for (var dateInfo in _availableDates) {
                   final date = dateInfo['date']!;
                   final journalNumber = dateInfo['journalNumber']!;
-
                   items.add(
                     PopupMenuItem<String>(
                       value: date,
@@ -1198,14 +1250,42 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   );
                 }
               }
-
               return items;
             },
           ),
         ],
       ),
-      body: _buildMainContent(),
-      // إخفاء زر الإضافة عند ظهور لوحة المفاتيح
+      body: RawKeyboardListener(
+        focusNode: FocusNode(),
+        autofocus: true,
+        onKey: (RawKeyEvent event) {
+          if (event is RawKeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+              final focusedNode = FocusScope.of(context).focusedChild;
+              if (focusedNode == null || focusedNode == _addButtonFocusNode) {
+                _addNewRow();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (rowFocusNodes.isNotEmpty) {
+                    final newRowIndex = rowFocusNodes.length - 1;
+                    FocusScope.of(context)
+                        .requestFocus(rowFocusNodes[newRowIndex][1]);
+                  }
+                });
+              }
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              _moveFocus(0, 1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _moveFocus(0, -1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              _moveFocus(1, 0);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              _moveFocus(-1, 0);
+            }
+          }
+        },
+        child: _buildMainContent(),
+      ),
       floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
           ? null
           : Container(
@@ -1233,7 +1313,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startDocked,
-      resizeToAvoidBottomInset: true, // تغيير من false إلى true
+      resizeToAvoidBottomInset: true,
     );
   }
 

@@ -104,6 +104,10 @@ class _SalesScreenState extends State<SalesScreen> {
 
   // أضف مع المتغيرات الأخرى
   double _grandTotal = 0.0;
+
+  FocusNode? _addButtonFocusNode;
+  int _currentFocusRow = -1;
+  int _currentFocusCol = -1;
   @override
   void initState() {
     super.initState();
@@ -132,6 +136,7 @@ class _SalesScreenState extends State<SalesScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkAdminStatus();
       _loadOrCreateRecord();
+      _addButtonFocusNode = FocusNode();
       _loadAvailableDates();
       _loadJournalNumber();
     });
@@ -166,6 +171,8 @@ class _SalesScreenState extends State<SalesScreen> {
     _scrollController.dispose();
 
     _horizontalSuggestionsController.dispose();
+
+    _addButtonFocusNode?.dispose();
 
     super.dispose();
   }
@@ -207,10 +214,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
   void _createNewRecord() {
     setState(() {
-      // لا نحدد الرقم هنا، بل سيتم تعيينه عند الحفظ لأول مرة
-      // الدالة _loadJournalNumber ستهتم بعرض الرقم الصحيح في الواجهة
-      serialNumber = '1'; // عرض رقم افتراضي مؤقتاً
-
+      serialNumber = '1';
       rowControllers.clear();
       rowFocusNodes.clear();
       cashOrDebtValues.clear();
@@ -222,11 +226,9 @@ class _SalesScreenState extends State<SalesScreen> {
       _addNewRow();
     });
 
+    // طلب التركيز على زر الإضافة بعد إنشاء اليومية الجديدة
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].length > 0) {
-        // التركيز على حقل المادة (index 0) بدلاً من العدد (index 1)
-        FocusScope.of(context).requestFocus(rowFocusNodes[0][0]);
-      }
+      _addButtonFocusNode?.requestFocus(); // <-- إضافة
     });
   }
 
@@ -237,7 +239,6 @@ class _SalesScreenState extends State<SalesScreen> {
 
       List<FocusNode> newFocusNodes = List.generate(8, (index) => FocusNode());
 
-      // إضافة مستمعات للتغيير
       _addChangeListenersToControllers(newControllers, rowControllers.length);
 
       sellerNames.add(widget.sellerName);
@@ -248,13 +249,12 @@ class _SalesScreenState extends State<SalesScreen> {
       customerNames.add('');
     });
 
+    _attachFocusListeners(rowControllers.length - 1); // <-- إضافة
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (rowFocusNodes.isNotEmpty) {
         final newRowIndex = rowFocusNodes.length - 1;
-        if (rowFocusNodes[newRowIndex].isNotEmpty) {
-          // التركيز على حقل المادة (index 0) بدلاً من العدد (index 1)
-          FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][0]);
-        }
+        FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][0]);
       }
     });
   }
@@ -552,7 +552,6 @@ class _SalesScreenState extends State<SalesScreen> {
         }
       }
 
-      // إعادة تهيئة القوائم
       rowControllers.clear();
       rowFocusNodes.clear();
       cashOrDebtValues.clear();
@@ -562,35 +561,28 @@ class _SalesScreenState extends State<SalesScreen> {
 
       serialNumber = document.recordNumber;
 
-      // تحميل السجلات من الوثيقة
       for (int i = 0; i < document.sales.length; i++) {
         var sale = document.sales[i];
 
         List<TextEditingController> newControllers = [
-          TextEditingController(text: sale.material), // [0]
-          TextEditingController(text: sale.count), // [1]
-          TextEditingController(text: sale.packaging), // [2]
-          TextEditingController(text: sale.standing), // [3]
-          TextEditingController(text: sale.net), // [4]
-          TextEditingController(text: sale.price), // [5]
-          TextEditingController(text: sale.total), // [6]
-          TextEditingController(
-              text: sale.customerName ?? ''), // [7] placeholder نقدي/دين
-          TextEditingController(), // [8] placeholder الفوارغ
-          TextEditingController(), // [9] placeholder اسم الزبون
+          TextEditingController(text: sale.material),
+          TextEditingController(text: sale.count),
+          TextEditingController(text: sale.packaging),
+          TextEditingController(text: sale.standing),
+          TextEditingController(text: sale.net),
+          TextEditingController(text: sale.price),
+          TextEditingController(text: sale.total),
+          TextEditingController(text: sale.customerName ?? ''),
         ];
 
         List<FocusNode> newFocusNodes =
             List.generate(8, (index) => FocusNode());
 
-        // تخزين اسم البائع لهذا الصف
         sellerNames.add(sale.sellerName);
 
-        // التحقق إذا كان السجل مملوكاً للبائع الحالي
         final bool isOwnedByCurrentSeller =
             sale.sellerName == widget.sellerName;
 
-        // إضافة مستمعات للتغيير فقط إذا كان السجل مملوكاً للبائع الحالي
         if (isOwnedByCurrentSeller) {
           _addChangeListenersToControllers(newControllers, i);
         }
@@ -602,7 +594,11 @@ class _SalesScreenState extends State<SalesScreen> {
         customerNames.add(sale.customerName ?? '');
       }
 
-      // تحميل المجاميع
+      // ربط مستمعات التركيز لكل الصفوف المحملة
+      for (int i = 0; i < rowFocusNodes.length; i++) {
+        _attachFocusListeners(i); // <-- إضافة
+      }
+
       if (document.totals.isNotEmpty) {
         totalCountController.text = document.totals['totalCount'] ?? '0';
         totalBaseController.text = document.totals['totalBase'] ?? '0.00';
@@ -612,6 +608,17 @@ class _SalesScreenState extends State<SalesScreen> {
 
       _hasUnsavedChanges = false;
     });
+  }
+
+  void _moveFocus(int deltaRow, int deltaCol) {
+    if (_currentFocusRow == -1 || _currentFocusCol == -1) return;
+    int newRow = _currentFocusRow + deltaRow;
+    int newCol = _currentFocusCol + deltaCol;
+    if (newRow >= 0 && newRow < rowFocusNodes.length) {
+      if (newCol >= 0 && newCol < rowFocusNodes[newRow].length) {
+        FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
+      }
+    }
   }
 
   void _scrollToField(int rowIndex, int colIndex) {
@@ -1026,8 +1033,38 @@ class _SalesScreenState extends State<SalesScreen> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            ExitButton(
-              onPressed: () => Navigator.of(context).pop(),
+            Row(
+              children: [
+                ExitButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 8),
+                Focus(
+                  focusNode: _addButtonFocusNode,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _addNewRow();
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (rowFocusNodes.isNotEmpty) {
+                          final newRowIndex = rowFocusNodes.length - 1;
+                          FocusScope.of(context)
+                              .requestFocus(rowFocusNodes[newRowIndex][0]);
+                        }
+                      });
+                    },
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('إضافة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.orange[700],
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+              ],
             ),
             if (_showFullScreenSuggestions &&
                 _getSuggestionsByType().isNotEmpty)
@@ -1109,7 +1146,6 @@ class _SalesScreenState extends State<SalesScreen> {
                     await _saveCurrentRecord(silent: true);
                   }
                 }
-
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -1124,7 +1160,6 @@ class _SalesScreenState extends State<SalesScreen> {
             },
             itemBuilder: (BuildContext context) {
               List<PopupMenuEntry<String>> items = [];
-
               if (_isLoadingRecords) {
                 items.add(
                   const PopupMenuItem<String>(
@@ -1153,11 +1188,9 @@ class _SalesScreenState extends State<SalesScreen> {
                   ),
                 );
                 items.add(const PopupMenuDivider());
-
                 for (var record in _availableRecords) {
                   final date = record['date']!;
                   final journalNumber = record['journalNumber']!;
-
                   items.add(
                     PopupMenuItem<String>(
                       value: date,
@@ -1176,14 +1209,42 @@ class _SalesScreenState extends State<SalesScreen> {
                   );
                 }
               }
-
               return items;
             },
           ),
         ],
       ),
-      body: _buildMainContent(),
-      // التعديل هنا: إذا كان ارتفاع لوحة المفاتيح أكبر من 0، نعيد null لإخفاء الزر
+      body: RawKeyboardListener(
+        focusNode: FocusNode(),
+        autofocus: true,
+        onKey: (RawKeyEvent event) {
+          if (event is RawKeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.enter ||
+                event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+              final focusedNode = FocusScope.of(context).focusedChild;
+              if (focusedNode == null || focusedNode == _addButtonFocusNode) {
+                _addNewRow();
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (rowFocusNodes.isNotEmpty) {
+                    final newRowIndex = rowFocusNodes.length - 1;
+                    FocusScope.of(context)
+                        .requestFocus(rowFocusNodes[newRowIndex][0]);
+                  }
+                });
+              }
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              _moveFocus(0, 1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _moveFocus(0, -1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              _moveFocus(1, 0);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              _moveFocus(-1, 0);
+            }
+          }
+        },
+        child: _buildMainContent(),
+      ),
       floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
           ? null
           : Container(
@@ -1799,6 +1860,18 @@ class _SalesScreenState extends State<SalesScreen> {
       }
     }
     if (mounted) setState(() => _grandTotal = total);
+  }
+
+  void _attachFocusListeners(int rowIndex) {
+    for (int col = 0; col < rowFocusNodes[rowIndex].length; col++) {
+      rowFocusNodes[rowIndex][col].removeListener(() {});
+      rowFocusNodes[rowIndex][col].addListener(() {
+        if (rowFocusNodes[rowIndex][col].hasFocus) {
+          _currentFocusRow = rowIndex;
+          _currentFocusCol = col;
+        }
+      });
+    }
   }
 }
 

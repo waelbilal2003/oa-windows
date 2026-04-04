@@ -130,7 +130,9 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
       totalStanding += double.tryParse(item.standing) ?? 0;
       totalNet += double.tryParse(item.net) ?? 0;
       totalCount += double.tryParse(item.count) ?? 0;
-      totalGrand += double.tryParse(item.total) ?? 0;
+      if (item.cashOrDebt != 'نقدي') {
+        totalGrand += double.tryParse(item.total) ?? 0;
+      }
     }
 
     String filterDesc = 'الفترة: حتى تاريخ ${widget.selectedDate}';
@@ -480,7 +482,9 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
               totalStanding += double.tryParse(item.standing) ?? 0;
               totalNet += double.tryParse(item.net) ?? 0;
               totalCount += double.tryParse(item.count) ?? 0;
-              totalGrand += double.tryParse(item.total) ?? 0;
+              if (item.cashOrDebt != 'نقدي') {
+                totalGrand += double.tryParse(item.total) ?? 0;
+              }
             }
 
             return SingleChildScrollView(
