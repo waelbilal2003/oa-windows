@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/material_index_service.dart';
 import '../services/packaging_index_service.dart';
+import '../widgets/exit_button.dart';
 
 class SettingsScreen extends StatefulWidget {
   final String? selectedDate;
@@ -35,8 +36,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isAddingNewItem = false;
 
   // متغيرات إعدادات حجم الخط والأيقونة
-  double _fontScalePercent = 0.0; // 0 = 0% زيادة (الحجم الأصلي)
-  double _iconScalePercent = 0.0; // 0 = 0% زيادة
+  double _fontScalePercent = 0.0;
+  double _iconScalePercent = 0.0;
+
+  void _handleBackButton() {
+    Navigator.of(context).pop();
+  }
 
   @override
   void initState() {
@@ -1040,10 +1045,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Scaffold(
         backgroundColor: Colors.transparent,
         appBar: AppBar(
-          title: const Text('الإعدادات'),
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: _handleBackButton,
+              ),
+              const Text(
+                'الإعدادات',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
           backgroundColor: Colors.blueGrey[800],
           foregroundColor: Colors.white,
-          centerTitle: true,
           elevation: 0,
         ),
         body: SingleChildScrollView(

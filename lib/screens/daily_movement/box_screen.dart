@@ -8,6 +8,7 @@ import '../../services/customer_index_service.dart';
 import '../../services/supplier_index_service.dart';
 import '../../services/enhanced_index_service.dart';
 import '../../widgets/suggestions_banner.dart';
+import '../../widgets/exit_button.dart';
 import '../../services/app_settings_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -1201,22 +1202,12 @@ class _BoxScreenState extends State<BoxScreen> {
         foregroundColor: Colors.white,
         centerTitle: true,
         titleSpacing: 0,
+        automaticallyImplyLeading: false,
 
-        // ── Leading: رجوع + PDF ──
-        leadingWidth: 88,
-        leading: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(width: 4),
-            IconButton(
-              icon: const Icon(Icons.arrow_back, size: 22),
-              onPressed: () => Navigator.pop(context),
-              tooltip: 'رجوع',
-              padding: const EdgeInsets.all(8),
-              constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-            ),
-          ],
+        // ── Leading: زر خروج ──
+        leadingWidth: 148,
+        leading: ExitButton(
+          onPressed: () => Navigator.of(context).pop(),
         ),
 
         // ── Title: عنوان + رصيد كلي أو شريط اقتراحات ──
@@ -1542,6 +1533,7 @@ class _BoxScreenState extends State<BoxScreen> {
       if (reloadAfterSave) {
         await _loadOrCreateJournal();
       }
+      await _loadAvailableDates();
     }
 
     setState(() => _isSaving = false);

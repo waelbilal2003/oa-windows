@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../services/invoices_service.dart';
 import '../../services/supplier_index_service.dart';
+import '../../widgets/exit_button.dart';
 
 class SupplierInvoicesScreen extends StatefulWidget {
   final String selectedDate;
@@ -519,10 +520,25 @@ class _SupplierInvoicesScreenState extends State<SupplierInvoicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'مبيعات المورد ${widget.supplierName}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            Text(
+              'مبيعات المورد ${widget.supplierName}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(width: 140),
+          ],
         ),
+        centerTitle: true,
+        backgroundColor: Colors.teal[700],
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.picture_as_pdf),
@@ -541,19 +557,6 @@ class _SupplierInvoicesScreenState extends State<SupplierInvoicesScreen> {
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(20.0),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              'بتاريخ ${widget.selectedDate}',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-          ),
-        ),
-        backgroundColor: Colors.teal[700],
-        foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import './customer_selection_screen.dart';
 import './supplier_selection_screen.dart';
+import '../../widgets/exit_button.dart';
 
 class InvoiceTypeSelectionScreen extends StatelessWidget {
   final String selectedDate;
@@ -11,12 +12,26 @@ class InvoiceTypeSelectionScreen extends StatelessWidget {
     required this.selectedDate,
     required this.storeName,
   }) : super(key: key);
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('نوع التقرير'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const Text(
+              'نوع التقرير',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
         centerTitle: true,
         backgroundColor: Colors.blueGrey[800],
         foregroundColor: Colors.white,
@@ -25,7 +40,6 @@ class InvoiceTypeSelectionScreen extends StatelessWidget {
         padding: const EdgeInsets.all(8.0),
         child: Column(
           children: [
-            // زر فاتورة الزبون (يبقى كما هو)
             Expanded(
               child: SizedBox(
                 width: double.infinity,
@@ -58,22 +72,19 @@ class InvoiceTypeSelectionScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // زر مبيعات مورد (تعديل بسيط)
-
             Expanded(
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[700], // اللون الأحمر
+                    backgroundColor: Colors.red[700],
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(15),
                     ),
                     elevation: 5,
                   ),
-                  icon: const Icon(Icons.shopping_cart_checkout,
-                      size: 40), // أيقونة مناسبة
+                  icon: const Icon(Icons.shopping_cart_checkout, size: 40),
                   label: const Text(
                     'مشتريات من مورد',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),

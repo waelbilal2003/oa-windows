@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/bait_model.dart';
 import '../services/bait_service.dart';
 import '../widgets/date_range_filter.dart';
+import '../widgets/exit_button.dart';
 
 class BaitScreen extends StatefulWidget {
   final String selectedDate;
@@ -249,10 +250,25 @@ class _BaitScreenState extends State<BaitScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('شاشة البايت'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const Text(
+              'شاشة البايت',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.teal[700],
         foregroundColor: Colors.white,
-        centerTitle: true,
         actions: [
           DateRangeFilterIcon(
             from: _filterFrom,

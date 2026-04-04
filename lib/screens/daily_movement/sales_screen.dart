@@ -16,6 +16,7 @@ import 'package:flutter/foundation.dart';
 
 import 'dart:async';
 import '../../widgets/suggestions_banner.dart';
+import '../../widgets/exit_button.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'package:flutter/services.dart' show rootBundle;
@@ -1020,61 +1021,72 @@ class _SalesScreenState extends State<SalesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
             if (_showFullScreenSuggestions &&
                 _getSuggestionsByType().isNotEmpty)
-              SuggestionsBanner(
-                suggestions: _getSuggestionsByType(),
-                type: _currentSuggestionType,
-                currentRowIndex: _getCurrentRowIndexByType(),
-                scrollController: _horizontalSuggestionsController,
-                onSelect: (val, idx) {
-                  if (_currentSuggestionType == 'material')
-                    _selectMaterialSuggestion(val, idx);
-                  if (_currentSuggestionType == 'packaging')
-                    _selectPackagingSuggestion(val, idx);
-                  if (_currentSuggestionType == 'customer')
-                    _selectCustomerSuggestion(val, idx);
-                },
-                onClose: () =>
-                    _toggleFullScreenSuggestions(type: '', show: false),
-              ),
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'المبيعات - ${widget.selectedDate}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16, height: 1.5),
-                  ),
-                  Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('الإجمالي الكلي: ',
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.white70)),
-                        Text(
-                          _grandTotal.toStringAsFixed(2),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.lightGreenAccent,
-                          ),
-                        ),
-                      ],
+              Expanded(
+                child: SuggestionsBanner(
+                  suggestions: _getSuggestionsByType(),
+                  type: _currentSuggestionType,
+                  currentRowIndex: _getCurrentRowIndexByType(),
+                  scrollController: _horizontalSuggestionsController,
+                  onSelect: (val, idx) {
+                    if (_currentSuggestionType == 'material')
+                      _selectMaterialSuggestion(val, idx);
+                    if (_currentSuggestionType == 'packaging')
+                      _selectPackagingSuggestion(val, idx);
+                    if (_currentSuggestionType == 'customer')
+                      _selectCustomerSuggestion(val, idx);
+                  },
+                  onClose: () =>
+                      _toggleFullScreenSuggestions(type: '', show: false),
+                ),
+              )
+            else
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'المبيعات - ${widget.selectedDate}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          height: 1.5),
                     ),
-                  ),
-                ],
+                    Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('الإجمالي الكلي: ',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.white70)),
+                          Text(
+                            _grandTotal.toStringAsFixed(2),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.lightGreenAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            const SizedBox(width: 8),
           ],
         ),
         centerTitle: false,

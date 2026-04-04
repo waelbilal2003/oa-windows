@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/customer_index_service.dart';
 import 'invoices_screen.dart';
+import '../../widgets/exit_button.dart';
 
 class CustomerSelectionScreen extends StatefulWidget {
   final String selectedDate;
@@ -60,8 +61,23 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('اختر زبوناً لعرض الفاتورة'),
-          centerTitle: false,
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const Text(
+                'اختر زبوناً لعرض الفاتورة',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
           backgroundColor: Colors.indigo[700],
           foregroundColor: Colors.white,
         ),
@@ -82,13 +98,11 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
               );
             }
 
-            // تخزين القائمة الكاملة لأول مرة فقط
             if (_allCustomers.isEmpty) {
               _allCustomers = snapshot.data!;
               _filteredCustomers = _allCustomers;
             }
 
-            // --- بداية الواجهة الجديدة مع حقل البحث ---
             return Column(
               children: [
                 Padding(
@@ -117,7 +131,6 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
                         ),
                         leading: const Icon(Icons.person, color: Colors.indigo),
                         onTap: () {
-                          // إخفاء لوحة المفاتيح عند الانتقال
                           FocusScope.of(context).unfocus();
                           Navigator.of(context).push(
                             MaterialPageRoute(

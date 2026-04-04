@@ -43,7 +43,7 @@ dependencies:
   archive: ^3.4.10      # ضغط ZIP
   file_picker: ^8.0.3   # اختيار ملف الاسترجاع
 
-  window_manager: ^0.3.0
+  window_manager:  ^0.3.8
   
 dev_dependencies:
   flutter_test:

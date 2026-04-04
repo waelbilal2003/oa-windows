@@ -5,6 +5,7 @@ import '../services/supplier_index_service.dart';
 import '../services/sales_storage_service.dart';
 import '../services/purchase_storage_service.dart';
 import '../services/box_storage_service.dart';
+import '../widgets/exit_button.dart';
 
 class AccountSummaryScreen extends StatefulWidget {
   final String selectedDate;
@@ -246,10 +247,25 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفصيلات الحساب'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const Text(
+              'تفصيلات الحساب',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.indigo[700],
         foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

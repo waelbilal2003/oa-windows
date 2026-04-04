@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/supplier_index_service.dart';
 import 'supplier_invoices_screen.dart';
 import 'supplier_purchases_screen.dart';
+import '../../widgets/exit_button.dart';
 
 class SupplierSelectionScreen extends StatefulWidget {
   final String selectedDate;
@@ -63,8 +64,23 @@ class _SupplierSelectionScreenState extends State<SupplierSelectionScreen> {
       textDirection: TextDirection.rtl,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('اختر مورداً لعرض التفاصيل'),
-          centerTitle: false,
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const Text(
+                'اختر مورداً لعرض التفاصيل',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
           backgroundColor: widget.reportType == 'purchases'
               ? Colors.red[700]
               : Colors.teal[700],
@@ -116,8 +132,7 @@ class _SupplierSelectionScreenState extends State<SupplierSelectionScreen> {
                         title: Text(
                           supplierName,
                           style: const TextStyle(
-                              fontSize: 18,
-                              color: Colors.black), // ✅ إضافة اللون الأسود
+                              fontSize: 18, color: Colors.black),
                         ),
                         leading: Icon(
                           Icons.local_shipping,
@@ -127,8 +142,6 @@ class _SupplierSelectionScreenState extends State<SupplierSelectionScreen> {
                         ),
                         onTap: () {
                           FocusScope.of(context).unfocus();
-
-                          // الشرط يضمن فتح شاشة واحدة فقط
                           if (widget.reportType == 'sales') {
                             Navigator.of(context).push(
                               MaterialPageRoute(

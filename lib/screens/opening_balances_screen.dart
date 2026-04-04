@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/app_settings_service.dart';
 import '../services/customer_index_service.dart';
 import '../services/supplier_index_service.dart';
+import '../widgets/exit_button.dart';
 
 class OpeningBalancesScreen extends StatefulWidget {
   final String selectedDate;
@@ -22,11 +23,9 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
   final TextEditingController _boxBalanceController = TextEditingController();
   final TextEditingController _capitalController = TextEditingController();
 
-  // حقل إضافة زبون جديد
   final TextEditingController _addCustomerController = TextEditingController();
   final FocusNode _addCustomerFocusNode = FocusNode();
 
-  // حقل إضافة مورد جديد
   final TextEditingController _addSupplierController = TextEditingController();
   final FocusNode _addSupplierFocusNode = FocusNode();
 
@@ -36,20 +35,21 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
   bool _isSaved = false;
   bool _isLoading = true;
 
-  // تبويب نشط: 0=الصندوق، 1=الزبائن، 2=الموردين
   int _activeTab = 0;
 
-  // Controllers للزبائن
   Map<String, TextEditingController> _customerBalanceControllers = {};
   Map<String, FocusNode> _customerBalanceFocusNodes = {};
   Map<String, TextEditingController> _customerMobileControllers = {};
   Map<String, FocusNode> _customerMobileFocusNodes = {};
 
-  // Controllers للموردين
   Map<String, TextEditingController> _supplierBalanceControllers = {};
   Map<String, FocusNode> _supplierBalanceFocusNodes = {};
   Map<String, TextEditingController> _supplierMobileControllers = {};
   Map<String, FocusNode> _supplierMobileFocusNodes = {};
+
+  void _handleBackButton() {
+    Navigator.of(context).pop();
+  }
 
   @override
   void initState() {
@@ -343,10 +343,25 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('أرصدة البداية'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: _handleBackButton,
+            ),
+            const Text(
+              'أرصدة البداية',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.deepOrange[700],
         foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -354,7 +369,6 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
               textDirection: TextDirection.rtl,
               child: Column(
                 children: [
-                  // تبويبات
                   Container(
                     color: Colors.deepOrange[50],
                     child: Row(

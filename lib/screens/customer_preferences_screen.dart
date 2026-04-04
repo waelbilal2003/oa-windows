@@ -8,7 +8,8 @@ import 'package:share_plus/share_plus.dart';
 import '../services/customer_index_service.dart';
 import '../services/sales_storage_service.dart';
 import '../services/box_storage_service.dart';
-import '../../widgets/date_range_filter.dart';
+import '../widgets/date_range_filter.dart';
+import '../widgets/exit_button.dart';
 
 class CustomerPreferencesScreen extends StatefulWidget {
   final CustomerData customer;
@@ -402,11 +403,25 @@ class _CustomerPreferencesScreenState extends State<CustomerPreferencesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.customer.name,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            Text(
+              widget.customer.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.teal[700],
         foregroundColor: Colors.white,
-        centerTitle: true,
         actions: [
           DateRangeFilterIcon(
             from: _filterFrom,

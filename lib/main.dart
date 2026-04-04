@@ -1,4 +1,3 @@
-/*
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -145,40 +144,53 @@ class _MyAppState extends State<MyApp> {
   }
 }
 //
-*/
-import 'dart:convert';
+/*
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:window_manager/window_manager.dart';
 import 'screens/login_screen.dart';
-import 'security/activation_screen.dart'; // استيراد شاشة التفعيل
+import 'security/activation_screen.dart';
 import 'screens/settings_screen.dart';
 import 'widgets/escape_handler.dart';
+import 'dart:convert';
 
 void main() async {
-  // التأكد من تهيئة Flutter
   WidgetsFlutterBinding.ensureInitialized();
 
-  // قفل اتجاه التطبيق
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
 
-  // التحقق من حالة التفعيل
+  // إعدادات النافذة
+  await windowManager.ensureInitialized();
+
+  // إزالة أزرار التحكم وجعل النافذة بلا إطار
+  await windowManager.setTitleBarStyle(TitleBarStyle.hidden);
+
+  // جعل النافذة ملء الشاشة
+  await windowManager.setFullScreen(true);
+
+  // أو استخدام maximize بدلاً من fullscreen
+  // await windowManager.maximize();
+
+  // منع تغيير حجم النافذة (اختياري)
+  await windowManager.setResizable(false);
+  await windowManager.setMinimizable(false);
+  await windowManager.setMaximizable(false);
+
   final prefs = await SharedPreferences.getInstance();
   final String activationStatus = prefs.getString('activation_status') ?? '';
 
   bool isActivated = false;
   if (activationStatus.isNotEmpty) {
     try {
-      // فك التشفير البسيط والتحقق من القيمة
       final decodedStatus = utf8.decode(base64.decode(activationStatus));
       if (decodedStatus == 'activated_ok') {
         isActivated = true;
       }
     } catch (e) {
-      // في حال وجود قيمة خاطئة أو قديمة
       isActivated = false;
     }
   }
@@ -320,3 +332,4 @@ class _MyAppState extends State<MyApp> {
         });
   }
 }
+*/

@@ -10,6 +10,7 @@ import '../../models/invoice_model.dart';
 import '../../services/invoices_service.dart';
 import '../../services/customer_index_service.dart';
 import '../../widgets/date_range_filter.dart';
+import '../../widgets/exit_button.dart';
 
 class InvoicesScreen extends StatefulWidget {
   final String selectedDate;
@@ -362,10 +363,25 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'فاتورة الزبون ${widget.customerName}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            Text(
+              'فاتورة الزبون ${widget.customerName}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(width: 140),
+          ],
         ),
+        centerTitle: true,
+        backgroundColor: Colors.indigo[700],
+        foregroundColor: Colors.white,
         actions: [
           DateRangeFilterIcon(
             from: _filterFrom,
@@ -401,19 +417,6 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(20.0),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              'بتاريخ ${widget.selectedDate} لمحل ${widget.storeName}',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-          ),
-        ),
-        backgroundColor: Colors.indigo[700],
-        foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,

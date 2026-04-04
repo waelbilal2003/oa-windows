@@ -652,10 +652,25 @@ class CustomerPreferencesListScreen extends StatelessWidget {
     final list = customers.values.toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفضيلات الزبائن'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const Text(
+              'تفضيلات الزبائن',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.teal[600],
         foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
@@ -725,10 +740,25 @@ class SupplierPreferencesListScreen extends StatelessWidget {
     final list = suppliers.values.toList();
     return Scaffold(
       appBar: AppBar(
-        title: const Text('تفضيلات الموردين'),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            const Text(
+              'تفضيلات الموردين',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.brown[600],
         foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,

@@ -10,6 +10,7 @@ import '../../models/purchase_model.dart';
 import '../../services/invoices_service.dart';
 import '../../services/supplier_index_service.dart';
 import '../../widgets/date_range_filter.dart';
+import '../../widgets/exit_button.dart';
 
 class SupplierPurchasesScreen extends StatefulWidget {
   final String selectedDate;
@@ -358,10 +359,25 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'مشتريات من المورد ${widget.supplierName}',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            Text(
+              'مشتريات من المورد ${widget.supplierName}',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(width: 140),
+          ],
         ),
+        centerTitle: true,
+        backgroundColor: Colors.red[700],
+        foregroundColor: Colors.white,
         actions: [
           DateRangeFilterIcon(
             from: _filterFrom,
@@ -397,19 +413,6 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
             },
           ),
         ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(20.0),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Text(
-              'بتاريخ ${widget.selectedDate} لمحل ${widget.storeName}',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-          ),
-        ),
-        backgroundColor: Colors.red[700],
-        foregroundColor: Colors.white,
-        centerTitle: true,
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,

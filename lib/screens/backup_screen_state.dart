@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
+import '../widgets/exit_button.dart';
 
 class _BackupInfo {
   final String path;
@@ -53,6 +54,10 @@ class _BackupScreenState extends State<BackupScreen> {
   String _statusMsg = '';
   bool _isSuccess = false;
   List<_BackupInfo> _backups = [];
+
+  void _handleBackButton() {
+    Navigator.of(context).pop();
+  }
 
   @override
   void initState() {
@@ -348,10 +353,25 @@ class _BackupScreenState extends State<BackupScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFF0A1628),
         appBar: AppBar(
-          title: const Text('النسخ الاحتياطي'),
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: _handleBackButton,
+              ),
+              const Text(
+                'النسخ الاحتياطي',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
           backgroundColor: const Color(0xFF0F4C5C),
           foregroundColor: Colors.white,
-          centerTitle: true,
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(20),

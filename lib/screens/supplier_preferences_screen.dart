@@ -9,6 +9,7 @@ import '../services/supplier_index_service.dart';
 import '../services/purchase_storage_service.dart';
 import '../services/box_storage_service.dart';
 import '../../widgets/date_range_filter.dart';
+import '../widgets/exit_button.dart';
 
 class SupplierPreferencesScreen extends StatefulWidget {
   final SupplierData supplier;
@@ -404,11 +405,25 @@ class _SupplierPreferencesScreenState extends State<SupplierPreferencesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.supplier.name,
-            style: const TextStyle(fontWeight: FontWeight.bold)),
+        automaticallyImplyLeading: false,
+        titleSpacing: 0,
+        toolbarHeight: 70,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ExitButton(
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            Text(
+              widget.supplier.name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(width: 140),
+          ],
+        ),
+        centerTitle: true,
         backgroundColor: Colors.brown[700],
         foregroundColor: Colors.white,
-        centerTitle: true,
         actions: [
           DateRangeFilterIcon(
             from: _filterFrom,
