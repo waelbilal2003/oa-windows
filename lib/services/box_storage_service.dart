@@ -5,18 +5,25 @@ import '../models/box_model.dart';
 import 'package:flutter/foundation.dart';
 
 class BoxStorageService {
+  // الآن نعيد المسار الأساسي لمجلد "MarketLedger/BoxJournals" مباشرة
   Future<String> _getBasePath() async {
     Directory? directory;
     if (Platform.isAndroid) {
       directory = await getExternalStorageDirectory();
     } else {
+      // Windows, iOS, macOS, Linux تستخدم مجلد المستندات
       directory = await getApplicationDocumentsDirectory();
     }
-    // *** التعديل: تم الرجوع للمنطق القديم لضمان التوافق ***
-    return directory!.path;
+
+    final basePath = '${directory!.path}/MarketLedger/BoxJournals';
+    final folder = Directory(basePath);
+    if (!await folder.exists()) {
+      await folder.create(recursive: true);
+    }
+    return basePath;
   }
 
-  // *** تعديل: هذه الدالة الآن هي الأساس وتعتمد على التاريخ فقط ***
+  // اسم الملف يعتمد على التاريخ فقط (مثل بقية الخدمات)
   String _createFileName(String date) {
     final dateParts = date.split('/');
     final formattedDate = dateParts.join('-');
@@ -25,20 +32,15 @@ class BoxStorageService {
 
   Future<bool> saveBoxDocument(BoxDocument document) async {
     try {
-      final basePath = await _getBasePath();
-      // *** التعديل: تم بناء المسار ليتوافق مع _getBasePath الجديدة ***
-      final folderPath = '$basePath/BoxJournals';
-      final folder = Directory(folderPath);
-      if (!await folder.exists()) await folder.create(recursive: true);
-
+      final basePath = await _getBasePath(); // المسار الكامل الآن
       final fileName = _createFileName(document.date);
-      final filePath = '$folderPath/$fileName';
+      final filePath = '$basePath/$fileName';
       final file = File(filePath);
       final jsonString = jsonEncode(document.toJson());
       await file.writeAsString(jsonString);
-
       return true;
     } catch (e) {
+      debugPrint('❌ خطأ في حفظ يومية الصندوق: $e');
       return false;
     }
   }
@@ -46,9 +48,8 @@ class BoxStorageService {
   Future<BoxDocument?> loadBoxDocumentForDate(String date) async {
     try {
       final basePath = await _getBasePath();
-      final folderPath = '$basePath/BoxJournals';
       final fileName = _createFileName(date);
-      final filePath = '$folderPath/$fileName';
+      final filePath = '$basePath/$fileName';
 
       final file = File(filePath);
       if (!await file.exists()) {
@@ -59,9 +60,7 @@ class BoxStorageService {
       final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
       return BoxDocument.fromJson(jsonMap);
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ خطأ في قراءة يومية الصندوق: $e');
-      }
+      debugPrint('❌ خطأ في قراءة يومية الصندوق: $e');
       return null;
     }
   }
@@ -93,9 +92,7 @@ class BoxStorageService {
   Future<List<Map<String, String>>> getAvailableDatesWithNumbers() async {
     try {
       final basePath = await _getBasePath();
-      final folderPath = '$basePath/BoxJournals';
-
-      final folder = Directory(folderPath);
+      final folder = Directory(basePath);
       if (!await folder.exists()) {
         return [];
       }
@@ -104,9 +101,7 @@ class BoxStorageService {
       final datesWithNumbers = <Map<String, String>>[];
 
       for (var file in files) {
-        if (file is File &&
-            file.path.endsWith('.json') &&
-            file.path.split('/').last.startsWith('box-')) {
+        if (file is File && file.path.endsWith('.json')) {
           try {
             final jsonString = await file.readAsString();
             final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -118,7 +113,9 @@ class BoxStorageService {
                 'journalNumber': journalNumber,
               });
             }
-          } catch (e) {/* تجاهل الملفات التالفة */}
+          } catch (e) {
+            // تجاهل الملفات التالفة
+          }
         }
       }
 
@@ -130,9 +127,7 @@ class BoxStorageService {
 
       return datesWithNumbers;
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ خطأ في قراءة تواريخ الصندوق: $e');
-      }
+      debugPrint('❌ خطأ في قراءة تواريخ الصندوق: $e');
       return [];
     }
   }
@@ -140,19 +135,15 @@ class BoxStorageService {
   Future<String?> getFilePath(String date) async {
     try {
       final basePath = await _getBasePath();
-      final folderPath = '$basePath/BoxJournals';
       final fileName = _createFileName(date);
-      final filePath = '$folderPath/$fileName';
-
+      final filePath = '$basePath/$fileName';
       final file = File(filePath);
       if (await file.exists()) {
         return filePath;
       }
       return null;
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ خطأ في الحصول على مسار ملف الصندوق: $e');
-      }
+      debugPrint('❌ خطأ في الحصول على مسار ملف الصندوق: $e');
       return null;
     }
   }
@@ -162,9 +153,7 @@ class BoxStorageService {
       final document = await loadBoxDocumentForDate(date);
       return document?.recordNumber ?? '1';
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ خطأ في الحصول على رقم يومية الصندوق: $e');
-      }
+      debugPrint('❌ خطأ في الحصول على رقم يومية الصندوق: $e');
       return '1';
     }
   }
@@ -172,9 +161,7 @@ class BoxStorageService {
   Future<String> getNextJournalNumber() async {
     try {
       final basePath = await _getBasePath();
-      final folderPath = '$basePath/BoxJournals';
-
-      final folder = Directory(folderPath);
+      final folder = Directory(basePath);
       if (!await folder.exists()) {
         return '1';
       }
@@ -183,9 +170,7 @@ class BoxStorageService {
       int maxJournalNumber = 0;
 
       for (var file in files) {
-        if (file is File &&
-            file.path.endsWith('.json') &&
-            file.path.split('/').last.startsWith('box-')) {
+        if (file is File && file.path.endsWith('.json')) {
           try {
             final jsonString = await file.readAsString();
             final jsonMap = jsonDecode(jsonString) as Map<String, dynamic>;
@@ -194,14 +179,14 @@ class BoxStorageService {
             if (journalNumber > maxJournalNumber) {
               maxJournalNumber = journalNumber;
             }
-          } catch (e) {/* تجاهل الملفات التالفة */}
+          } catch (e) {
+            // تجاهل الملفات التالفة
+          }
         }
       }
       return (maxJournalNumber + 1).toString();
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ خطأ في الحصول على الرقم التسلسلي التالي للصندوق: $e');
-      }
+      debugPrint('❌ خطأ في الحصول على الرقم التسلسلي التالي للصندوق: $e');
       return '1';
     }
   }

@@ -864,23 +864,30 @@ class _BoxScreenState extends State<BoxScreen> {
         ),
       );
     } else {
-      cellContent = InkWell(
-        onTap: canEdit ? () => _showAccountTypeDialog(rowIndex) : null,
-        child: Container(
-          margin: const EdgeInsets.all(2),
-          height: 25,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
+      cellContent = Container(
+        margin: EdgeInsets.zero,
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey[300]!),
+          borderRadius: BorderRadius.circular(3),
+          color: Colors.grey[50],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: canEdit ? () => _showAccountTypeDialog(rowIndex) : null,
             borderRadius: BorderRadius.circular(3),
-            color: Colors.grey[50],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
-              Text('اختر النوع',
-                  style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
-              Icon(Icons.arrow_drop_down, size: 16, color: Colors.blueGrey),
-            ],
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 25),
+              alignment: Alignment.center,
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('اختر النوع',
+                      style: TextStyle(fontSize: 16, color: Colors.blueGrey)),
+                  Icon(Icons.arrow_drop_down, size: 16, color: Colors.blueGrey),
+                ],
+              ),
+            ),
           ),
         ),
       );
