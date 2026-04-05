@@ -39,6 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _fontScalePercent = 0.0;
   double _iconScalePercent = 0.0;
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _keyboardFocusNode = FocusNode();
 
   void _handleBackButton() {
     Navigator.of(context).pop();
@@ -71,6 +72,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _addItemController.dispose();
     _addItemFocusNode.dispose();
     _scrollController.dispose();
+    _keyboardFocusNode.dispose();
     _disposeItemControllers();
     super.dispose();
   }
@@ -1068,37 +1070,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
           foregroundColor: Colors.white,
           elevation: 0,
         ),
-        body: RawKeyboardListener(
-          focusNode: FocusNode(),
-          autofocus: true,
-          onKey: (RawKeyEvent event) {
-            if (event is RawKeyDownEvent) {
-              if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-                _scrollController.animateTo(
-                  (_scrollController.offset + 150)
-                      .clamp(0, _scrollController.position.maxScrollExtent),
-                  duration: const Duration(milliseconds: 80),
-                  curve: Curves.easeInOut,
-                );
-              } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-                _scrollController.animateTo(
-                  (_scrollController.offset - 150)
-                      .clamp(0, _scrollController.position.maxScrollExtent),
-                  duration: const Duration(milliseconds: 80),
-                  curve: Curves.easeInOut,
-                );
-              }
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () {
+            final anyTextFieldFocused = _addItemFocusNode.hasFocus ||
+                _itemFocusNodes.values.any((n) => n.hasFocus);
+            if (!anyTextFieldFocused) {
+              _keyboardFocusNode.requestFocus();
             }
           },
-          child: SingleChildScrollView(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              children: [
-                _buildMainButtons(),
-                const SizedBox(height: 20),
-                _buildCurrentList(),
-              ],
+          child: Focus(
+            focusNode: _keyboardFocusNode,
+            autofocus: true,
+            onKeyEvent: (node, event) {
+              final anyTextFieldFocused = _addItemFocusNode.hasFocus ||
+                  _itemFocusNodes.values.any((n) => n.hasFocus);
+              if (anyTextFieldFocused) return KeyEventResult.ignored;
+              if (event is KeyDownEvent || event is KeyRepeatEvent) {
+                if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.animateTo(
+                      (_scrollController.offset + 150)
+                          .clamp(0, _scrollController.position.maxScrollExtent),
+                      duration: const Duration(milliseconds: 80),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                  return KeyEventResult.handled;
+                } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                  if (_scrollController.hasClients) {
+                    _scrollController.animateTo(
+                      (_scrollController.offset - 150)
+                          .clamp(0, _scrollController.position.maxScrollExtent),
+                      duration: const Duration(milliseconds: 80),
+                      curve: Curves.easeInOut,
+                    );
+                  }
+                  return KeyEventResult.handled;
+                }
+              }
+              return KeyEventResult.ignored;
+            },
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  _buildMainButtons(),
+                  const SizedBox(height: 20),
+                  _buildCurrentList(),
+                ],
+              ),
             ),
           ),
         ),

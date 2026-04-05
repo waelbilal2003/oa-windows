@@ -258,7 +258,7 @@ class SalesStorageService {
   Future<List<String>> getAvailableRecords(String date) async {
     try {
       final basePath = await _getBasePath();
-      final folderPath = '$basePath/AlhalJournals';
+      final folderPath = '$basePath/SalesJournals';
       final fileName = _createFileName(date);
       final filePath = '$folderPath/$fileName';
 
@@ -308,7 +308,7 @@ class SalesStorageService {
   // دالة مساعدة للحصول على ملف المبيعات
   Future<File> _getSalesFile(String date) async {
     final basePath = await _getBasePath();
-    final folderPath = '$basePath/AlhalJournals';
+    final folderPath = '$basePath/SalesJournals';
     final fileName = _createFileName(date);
     return File('$folderPath/$fileName');
   }
@@ -320,7 +320,7 @@ class SalesStorageService {
       final basePath = await _getBasePath();
 
       // إنشاء مسار المجلد
-      final folderPath = '$basePath/AlhalJournals';
+      final folderPath = '$basePath/SalesJournals';
 
       // إنشاء اسم الملف
       final fileName = _createFileName(date);
@@ -351,7 +351,7 @@ class SalesStorageService {
   Future<String?> getFilePath(String date, String recordNumber) async {
     try {
       final basePath = await _getBasePath();
-      final folderPath = '$basePath/AlhalJournals';
+      final folderPath = '$basePath/SalesJournals';
       final fileName = _createFileName(date);
       final filePath = '$folderPath/$fileName';
 

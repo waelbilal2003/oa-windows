@@ -108,6 +108,7 @@ class _SalesScreenState extends State<SalesScreen> {
   FocusNode? _addButtonFocusNode;
   int _currentFocusRow = -1;
   int _currentFocusCol = -1;
+
   @override
   void initState() {
     super.initState();
@@ -139,6 +140,14 @@ class _SalesScreenState extends State<SalesScreen> {
       _addButtonFocusNode = FocusNode();
       _loadAvailableDates();
       _loadJournalNumber();
+      // تأكد من أن التركيز يذهب لأول خلية بعد تحميل البيانات
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].isNotEmpty) {
+          FocusScope.of(context).requestFocus(rowFocusNodes[0][0]);
+          _currentFocusRow = 0;
+          _currentFocusCol = 0;
+        }
+      });
     });
   }
 
@@ -236,11 +245,8 @@ class _SalesScreenState extends State<SalesScreen> {
     setState(() {
       List<TextEditingController> newControllers =
           List.generate(8, (index) => TextEditingController());
-
       List<FocusNode> newFocusNodes = List.generate(8, (index) => FocusNode());
-
       _addChangeListenersToControllers(newControllers, rowControllers.length);
-
       sellerNames.add(widget.sellerName);
       rowControllers.add(newControllers);
       rowFocusNodes.add(newFocusNodes);
@@ -248,13 +254,13 @@ class _SalesScreenState extends State<SalesScreen> {
       emptiesValues.add('');
       customerNames.add('');
     });
-
-    _attachFocusListeners(rowControllers.length - 1); // <-- إضافة
-
+    _attachFocusListeners(rowControllers.length - 1);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (rowFocusNodes.isNotEmpty) {
         final newRowIndex = rowFocusNodes.length - 1;
         FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][0]);
+        _currentFocusRow = newRowIndex;
+        _currentFocusCol = 0;
       }
     });
   }
@@ -611,61 +617,56 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   void _moveFocus(int deltaRow, int deltaCol) {
-    if (_currentFocusRow == -1 || _currentFocusCol == -1) return;
+    if (_currentFocusRow == -1 || _currentFocusCol == -1) {
+      if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].isNotEmpty) {
+        _currentFocusRow = 0;
+        _currentFocusCol = 0;
+        FocusScope.of(context).requestFocus(rowFocusNodes[0][0]);
+        _scrollToField(0, 0);
+        _adjustScrollPosition(0);
+      }
+      return;
+    }
+
     int newRow = _currentFocusRow + deltaRow;
     int newCol = _currentFocusCol + deltaCol;
 
-    // النزول إلى سطر المجاميع
-    if (newRow == rowFocusNodes.length) {
-      FocusScope.of(context).unfocus();
-      _currentFocusRow = rowFocusNodes.length;
-      _currentFocusCol = newCol.clamp(0, 10);
-      // تمرير للأسفل لإظهار سطر المجاميع
-      _verticalScrollController.animateTo(
-        _verticalScrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeInOut,
-      );
-      return;
-    }
+    if (newRow < 0) newRow = 0;
+    if (newRow >= rowFocusNodes.length) newRow = rowFocusNodes.length - 1;
+    if (newCol < 0) newCol = 0;
+    if (newCol >= rowFocusNodes[newRow].length)
+      newCol = rowFocusNodes[newRow].length - 1;
 
-    // الصعود من سطر المجاميع
-    if (_currentFocusRow == rowFocusNodes.length) {
-      if (deltaRow == -1 && rowFocusNodes.isNotEmpty) {
-        int targetRow = rowFocusNodes.length - 1;
-        int targetCol =
-            _currentFocusCol.clamp(0, rowFocusNodes[targetRow].length - 1);
-        FocusScope.of(context)
-            .requestFocus(rowFocusNodes[targetRow][targetCol]);
-        _currentFocusRow = targetRow;
-        _currentFocusCol = targetCol;
-      }
-      return;
-    }
+    FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
+    _currentFocusRow = newRow;
+    _currentFocusCol = newCol;
 
-    if (newRow >= 0 && newRow < rowFocusNodes.length) {
-      if (newCol >= 0 && newCol < rowFocusNodes[newRow].length) {
-        FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
-      }
-    }
+    _scrollToField(newRow, newCol);
+    _adjustScrollPosition(newRow);
   }
 
   void _scrollToField(int rowIndex, int colIndex) {
     const double headerHeight = 32.0;
     const double rowHeight = 25.0;
     final double verticalPosition = (rowIndex * rowHeight);
-    const double columnWidth = 60.0;
+    final double verticalTarget = (verticalPosition + headerHeight)
+        .clamp(0, _verticalScrollController.position.maxScrollExtent);
+
+    const double columnWidth =
+        80.0; // في BoxScreen استخدم 80.0، في PurchasesScreen 80.0، في SalesScreen 60.0
     final double horizontalPosition = colIndex * columnWidth;
+    final double horizontalTarget = horizontalPosition.clamp(
+        0, _horizontalScrollController.position.maxScrollExtent);
 
     _verticalScrollController.animateTo(
-      verticalPosition + headerHeight,
-      duration: const Duration(milliseconds: 300),
+      verticalTarget,
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
     );
 
     _horizontalScrollController.animateTo(
-      horizontalPosition,
-      duration: const Duration(milliseconds: 300),
+      horizontalTarget,
+      duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
     );
   }
@@ -1886,8 +1887,38 @@ class _SalesScreenState extends State<SalesScreen> {
         if (rowFocusNodes[rowIndex][col].hasFocus) {
           _currentFocusRow = rowIndex;
           _currentFocusCol = col;
+          _scrollToField(rowIndex, col);
         }
       });
+    }
+  }
+
+  void _scrollToRevealTotalsIfNeeded(int currentRowIndex) {
+    if (rowFocusNodes.length - currentRowIndex <= 3) {
+      _verticalScrollController.animateTo(
+        _verticalScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  void _adjustScrollPosition(int currentRowIndex) {
+    final int totalRows = rowFocusNodes.length;
+    if (totalRows == 0) return;
+
+    if (currentRowIndex <= 2) {
+      _verticalScrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
+    } else if (totalRows - currentRowIndex <= 3) {
+      _verticalScrollController.animateTo(
+        _verticalScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+      );
     }
   }
 }

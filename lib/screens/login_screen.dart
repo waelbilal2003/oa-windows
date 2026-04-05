@@ -306,6 +306,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
                                   ),
                                 ),
                               ),
+                              _buildExitNote(),
                             ],
                           ),
                         ),
@@ -316,6 +317,21 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExitNote() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Text(
+        'للخروج من التطبيق انقر Alt + F4',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[600],
+          fontStyle: FontStyle.italic,
         ),
       ),
     );
@@ -637,6 +653,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
                                   ),
                                 ),
                               ),
+                              _buildExitNote(),
                             ],
                           ),
                         ),
@@ -647,6 +664,21 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExitNote() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Text(
+        'للخروج من التطبيق انقر Alt + F4',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 12,
+          color: Colors.grey[600],
+          fontStyle: FontStyle.italic,
         ),
       ),
     );

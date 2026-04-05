@@ -48,6 +48,7 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
   Map<String, FocusNode> _supplierMobileFocusNodes = {};
 
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _keyboardFocusNode = FocusNode();
   void _handleBackButton() {
     Navigator.of(context).pop();
   }
@@ -78,6 +79,7 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
     _supplierMobileFocusNodes.values.forEach((n) => n.dispose());
     _scrollController.dispose();
 
+    _keyboardFocusNode.dispose();
     super.dispose();
   }
 
@@ -343,76 +345,104 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RawKeyboardListener(
-      focusNode: FocusNode(),
-      autofocus: true,
-      onKey: (RawKeyEvent event) {
-        if (event is RawKeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            _scrollController.animateTo(
-              (_scrollController.offset + 150)
-                  .clamp(0, _scrollController.position.maxScrollExtent),
-              duration: const Duration(milliseconds: 80),
-              curve: Curves.easeInOut,
-            );
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _scrollController.animateTo(
-              (_scrollController.offset - 150)
-                  .clamp(0, _scrollController.position.maxScrollExtent),
-              duration: const Duration(milliseconds: 80),
-              curve: Curves.easeInOut,
-            );
-          }
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () {
+        final anyTextFieldFocused = _addCustomerFocusNode.hasFocus ||
+            _addSupplierFocusNode.hasFocus ||
+            _customerBalanceFocusNodes.values.any((n) => n.hasFocus) ||
+            _customerMobileFocusNodes.values.any((n) => n.hasFocus) ||
+            _supplierBalanceFocusNodes.values.any((n) => n.hasFocus) ||
+            _supplierMobileFocusNodes.values.any((n) => n.hasFocus);
+        if (!anyTextFieldFocused) {
+          _keyboardFocusNode.requestFocus();
         }
       },
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          titleSpacing: 0,
-          toolbarHeight: 70,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ExitButton(
-                onPressed: _handleBackButton,
-              ),
-              const Text(
-                'أرصدة البداية',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-              ),
-              const SizedBox(width: 140),
-            ],
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.deepOrange[700],
-          foregroundColor: Colors.white,
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Directionality(
-                textDirection: TextDirection.rtl,
-                child: Column(
-                  children: [
-                    Container(
-                      color: Colors.deepOrange[50],
-                      child: Row(
-                        children: [
-                          _buildTabButton(0, 'الصندوق', Icons.inbox),
-                          _buildTabButton(1, 'الزبائن', Icons.people),
-                          _buildTabButton(2, 'الموردين', Icons.store),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: _activeTab == 0
-                          ? _buildBoxTab()
-                          : _activeTab == 1
-                              ? _buildCustomersTab()
-                              : _buildSuppliersTab(),
-                    ),
-                  ],
+      child: Focus(
+        focusNode: _keyboardFocusNode,
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          final anyTextFieldFocused = _addCustomerFocusNode.hasFocus ||
+              _addSupplierFocusNode.hasFocus ||
+              _customerBalanceFocusNodes.values.any((n) => n.hasFocus) ||
+              _customerMobileFocusNodes.values.any((n) => n.hasFocus) ||
+              _supplierBalanceFocusNodes.values.any((n) => n.hasFocus) ||
+              _supplierMobileFocusNodes.values.any((n) => n.hasFocus);
+          if (anyTextFieldFocused) return KeyEventResult.ignored;
+          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  (_scrollController.offset + 150)
+                      .clamp(0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 80),
+                  curve: Curves.easeInOut,
+                );
+              }
+              return KeyEventResult.handled;
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  (_scrollController.offset - 150)
+                      .clamp(0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 80),
+                  curve: Curves.easeInOut,
+                );
+              }
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            titleSpacing: 0,
+            toolbarHeight: 70,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ExitButton(
+                  onPressed: _handleBackButton,
                 ),
-              ),
+                const Text(
+                  'أرصدة البداية',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+                ),
+                const SizedBox(width: 140),
+              ],
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.deepOrange[700],
+            foregroundColor: Colors.white,
+          ),
+          body: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Column(
+                    children: [
+                      Container(
+                        color: Colors.deepOrange[50],
+                        child: Row(
+                          children: [
+                            _buildTabButton(0, 'الصندوق', Icons.inbox),
+                            _buildTabButton(1, 'الزبائن', Icons.people),
+                            _buildTabButton(2, 'الموردين', Icons.store),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: _activeTab == 0
+                            ? _buildBoxTab()
+                            : _activeTab == 1
+                                ? _buildCustomersTab()
+                                : _buildSuppliersTab(),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
       ),
     );
   }

@@ -36,6 +36,7 @@ class _SupplierPreferencesScreenState extends State<SupplierPreferencesScreen> {
   DateTime? _filterFrom;
   DateTime? _filterTo;
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _keyboardFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _SupplierPreferencesScreenState extends State<SupplierPreferencesScreen> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _keyboardFocusNode.dispose();
     super.dispose();
   }
 
@@ -410,279 +412,304 @@ class _SupplierPreferencesScreenState extends State<SupplierPreferencesScreen> {
       return sum + val;
     });
 
-    return RawKeyboardListener(
-      focusNode: FocusNode(),
-      autofocus: true,
-      onKey: (RawKeyEvent event) {
-        if (event is RawKeyDownEvent) {
-          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-            _scrollController.animateTo(
-              (_scrollController.offset + 150)
-                  .clamp(0, _scrollController.position.maxScrollExtent),
-              duration: const Duration(milliseconds: 80),
-              curve: Curves.easeInOut,
-            );
-          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-            _scrollController.animateTo(
-              (_scrollController.offset - 150)
-                  .clamp(0, _scrollController.position.maxScrollExtent),
-              duration: const Duration(milliseconds: 80),
-              curve: Curves.easeInOut,
-            );
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onTap: () => _keyboardFocusNode.requestFocus(),
+      child: Focus(
+        focusNode: _keyboardFocusNode,
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  (_scrollController.offset + 150)
+                      .clamp(0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 80),
+                  curve: Curves.easeInOut,
+                );
+              }
+              return KeyEventResult.handled;
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(
+                  (_scrollController.offset - 150)
+                      .clamp(0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 80),
+                  curve: Curves.easeInOut,
+                );
+              }
+              return KeyEventResult.handled;
+            }
           }
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          titleSpacing: 0,
-          toolbarHeight: 70,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              ExitButton(
-                onPressed: () => Navigator.of(context).pop(),
+          return KeyEventResult.ignored;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            titleSpacing: 0,
+            toolbarHeight: 70,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ExitButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                Text(
+                  widget.supplier.name,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                const SizedBox(width: 140),
+              ],
+            ),
+            centerTitle: true,
+            backgroundColor: Colors.brown[700],
+            foregroundColor: Colors.white,
+            actions: [
+              DateRangeFilterIcon(
+                from: _filterFrom,
+                to: _filterTo,
+                onFromChanged: (date) {
+                  setState(() => _filterFrom = date);
+                  _loadDetails();
+                },
+                onToChanged: (date) {
+                  setState(() => _filterTo = date);
+                  _loadDetails();
+                },
+                onClear: _clearFilter,
+                color: Colors.white,
               ),
-              Text(
-                widget.supplier.name,
-                style:
-                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              IconButton(
+                icon: const Icon(Icons.picture_as_pdf),
+                tooltip: 'تصدير PDF',
+                onPressed: _isLoading ? null : _generateAndSharePdf,
               ),
-              const SizedBox(width: 140),
             ],
           ),
-          centerTitle: true,
-          backgroundColor: Colors.brown[700],
-          foregroundColor: Colors.white,
-          actions: [
-            DateRangeFilterIcon(
-              from: _filterFrom,
-              to: _filterTo,
-              onFromChanged: (date) {
-                setState(() => _filterFrom = date);
-                _loadDetails();
-              },
-              onToChanged: (date) {
-                setState(() => _filterTo = date);
-                _loadDetails();
-              },
-              onClear: _clearFilter,
-              color: Colors.white,
-            ),
-            IconButton(
-              icon: const Icon(Icons.picture_as_pdf),
-              tooltip: 'تصدير PDF',
-              onPressed: _isLoading ? null : _generateAndSharePdf,
-            ),
-          ],
-        ),
-        body: Directionality(
-          textDirection: TextDirection.rtl,
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      FilterChipWidget(
-                        from: _filterFrom,
-                        to: _filterTo,
-                        onClear: _clearFilter,
-                        color: Colors.brown,
-                      ),
-                      const SizedBox(height: 12),
-                      Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              _buildInfoRow(
-                                  Icons.phone,
-                                  'الموبايل',
-                                  widget.supplier.mobile.isEmpty
-                                      ? '—'
-                                      : widget.supplier.mobile),
-                              const Divider(),
-                              _buildInfoRow(
-                                  Icons.account_balance_wallet,
-                                  'الرصيد النهائي',
-                                  widget.supplier.balance
-                                      .toStringAsFixed(2)
-                                      .replaceAll(RegExp(r'\.00$'), '')),
-                              const Divider(),
-                              _buildInfoRow(Icons.calendar_today, 'تاريخ البدء',
-                                  widget.supplier.startDate),
-                            ],
+          body: Directionality(
+            textDirection: TextDirection.rtl,
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FilterChipWidget(
+                          from: _filterFrom,
+                          to: _filterTo,
+                          onClear: _clearFilter,
+                          color: Colors.brown,
+                        ),
+                        const SizedBox(height: 12),
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                _buildInfoRow(
+                                    Icons.phone,
+                                    'الموبايل',
+                                    widget.supplier.mobile.isEmpty
+                                        ? '—'
+                                        : widget.supplier.mobile),
+                                const Divider(),
+                                _buildInfoRow(
+                                    Icons.account_balance_wallet,
+                                    'الرصيد النهائي',
+                                    widget.supplier.balance
+                                        .toStringAsFixed(2)
+                                        .replaceAll(RegExp(r'\.00$'), '')),
+                                const Divider(),
+                                _buildInfoRow(Icons.calendar_today,
+                                    'تاريخ البدء', widget.supplier.startDate),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Card(
-                        elevation: 3,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text('السجلات',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold)),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.brown[700],
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      'المجموع: ${totalVisible.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')}',
-                                      style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              if (_visibleTransactions.isEmpty)
-                                const Center(
-                                    child: Text('لا توجد معاملات مسجلة',
-                                        style: TextStyle(color: Colors.grey)))
-                              else
-                                Table(
-                                  border: TableBorder.all(
-                                      color: Colors.grey.shade300),
-                                  columnWidths: const {
-                                    0: FlexColumnWidth(2),
-                                    1: FlexColumnWidth(2),
-                                    2: FlexColumnWidth(2),
-                                    3: FlexColumnWidth(2),
-                                  },
+                        const SizedBox(height: 12),
+                        Card(
+                          elevation: 3,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    TableRow(
+                                    const Text('السجلات',
+                                        style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold)),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
-                                          color: Colors.grey[200]),
-                                      children: const [
-                                        Padding(
-                                            padding: EdgeInsets.all(6),
-                                            child: Text('التاريخ',
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16),
-                                                textAlign: TextAlign.center)),
-                                        Padding(
-                                            padding: EdgeInsets.all(6),
-                                            child: Text('المبلغ',
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16),
-                                                textAlign: TextAlign.center)),
-                                        Padding(
-                                            padding: EdgeInsets.all(6),
-                                            child: Text('المصدر',
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 12),
-                                                textAlign: TextAlign.center)),
-                                        Padding(
-                                            padding: EdgeInsets.all(6),
-                                            child: Text('البيان',
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16),
-                                                textAlign: TextAlign.center)),
-                                      ],
+                                        color: Colors.brown[700],
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        'المجموع: ${totalVisible.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '')}',
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold),
+                                      ),
                                     ),
-                                    ..._visibleTransactions.map((p) {
-                                      final isBox = p['source'] == 'box_paid' ||
-                                          p['source'] == 'box_received';
-                                      final isBoxReceived =
-                                          p['source'] == 'box_received';
-                                      return TableRow(
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                if (_visibleTransactions.isEmpty)
+                                  const Center(
+                                      child: Text('لا توجد معاملات مسجلة',
+                                          style: TextStyle(color: Colors.grey)))
+                                else
+                                  Table(
+                                    border: TableBorder.all(
+                                        color: Colors.grey.shade300),
+                                    columnWidths: const {
+                                      0: FlexColumnWidth(2),
+                                      1: FlexColumnWidth(2),
+                                      2: FlexColumnWidth(2),
+                                      3: FlexColumnWidth(2),
+                                    },
+                                    children: [
+                                      TableRow(
                                         decoration: BoxDecoration(
-                                          color:
-                                              isBox ? Colors.orange[50] : null,
-                                        ),
-                                        children: [
+                                            color: Colors.grey[200]),
+                                        children: const [
                                           Padding(
-                                              padding: const EdgeInsets.all(6),
-                                              child: Text(p['date'] ?? '',
-                                                  style: const TextStyle(
+                                              padding: EdgeInsets.all(6),
+                                              child: Text('التاريخ',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 16),
                                                   textAlign: TextAlign.center)),
                                           Padding(
-                                              padding: const EdgeInsets.all(6),
-                                              child: Text(p['value'] ?? '',
-                                                  style: const TextStyle(
-                                                      fontSize: 16,
+                                              padding: EdgeInsets.all(6),
+                                              child: Text('المبلغ',
+                                                  style: TextStyle(
                                                       fontWeight:
-                                                          FontWeight.bold),
+                                                          FontWeight.bold,
+                                                      fontSize: 16),
                                                   textAlign: TextAlign.center)),
                                           Padding(
-                                            padding: const EdgeInsets.all(6),
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: isBoxReceived
-                                                    ? Colors.blue[100]
-                                                    : isBox
-                                                        ? Colors.orange[100]
-                                                        : Colors.brown[50],
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                isBoxReceived
-                                                    ? 'مقبوض'
-                                                    : isBox
-                                                        ? 'مدفوع'
-                                                        : 'مشتريات',
-                                                style: TextStyle(
-                                                    fontSize: 16,
-                                                    color: isBoxReceived
-                                                        ? Colors.blue[800]
-                                                        : isBox
-                                                            ? Colors.orange[800]
-                                                            : Colors.brown[700],
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ),
-                                          ),
+                                              padding: EdgeInsets.all(6),
+                                              child: Text('المصدر',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 12),
+                                                  textAlign: TextAlign.center)),
                                           Padding(
-                                              padding: const EdgeInsets.all(6),
-                                              child: Text(p['notes'] ?? '',
-                                                  style: const TextStyle(
+                                              padding: EdgeInsets.all(6),
+                                              child: Text('البيان',
+                                                  style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                       fontSize: 16),
                                                   textAlign: TextAlign.center)),
                                         ],
-                                      );
-                                    }),
-                                  ],
-                                ),
-                            ],
+                                      ),
+                                      ..._visibleTransactions.map((p) {
+                                        final isBox =
+                                            p['source'] == 'box_paid' ||
+                                                p['source'] == 'box_received';
+                                        final isBoxReceived =
+                                            p['source'] == 'box_received';
+                                        return TableRow(
+                                          decoration: BoxDecoration(
+                                            color: isBox
+                                                ? Colors.orange[50]
+                                                : null,
+                                          ),
+                                          children: [
+                                            Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6),
+                                                child: Text(p['date'] ?? '',
+                                                    style: const TextStyle(
+                                                        fontSize: 16),
+                                                    textAlign:
+                                                        TextAlign.center)),
+                                            Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6),
+                                                child: Text(p['value'] ?? '',
+                                                    style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold),
+                                                    textAlign:
+                                                        TextAlign.center)),
+                                            Padding(
+                                              padding: const EdgeInsets.all(6),
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4,
+                                                        vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: isBoxReceived
+                                                      ? Colors.blue[100]
+                                                      : isBox
+                                                          ? Colors.orange[100]
+                                                          : Colors.brown[50],
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  isBoxReceived
+                                                      ? 'مقبوض'
+                                                      : isBox
+                                                          ? 'مدفوع'
+                                                          : 'مشتريات',
+                                                  style: TextStyle(
+                                                      fontSize: 16,
+                                                      color: isBoxReceived
+                                                          ? Colors.blue[800]
+                                                          : isBox
+                                                              ? Colors
+                                                                  .orange[800]
+                                                              : Colors
+                                                                  .brown[700],
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                            Padding(
+                                                padding:
+                                                    const EdgeInsets.all(6),
+                                                child: Text(p['notes'] ?? '',
+                                                    style: const TextStyle(
+                                                        fontSize: 16),
+                                                    textAlign:
+                                                        TextAlign.center)),
+                                          ],
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
     );
