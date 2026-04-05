@@ -53,7 +53,6 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
         final doc =
             await _boxStorageService.loadBoxDocumentForDate(dateInfo['date']!);
         if (doc != null) {
-          // *** التعديل الرئيسي هنا: المرور على المعاملات بدلاً من الاعتماد على "totals" ***
           for (var trans in doc.transactions) {
             boxManualReceived += double.tryParse(trans.received) ?? 0;
             boxManualPaid += double.tryParse(trans.paid) ?? 0;
@@ -73,7 +72,6 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
         final doc = await _salesStorageService.loadDocumentForDate(date);
         if (doc != null) {
           sales += double.tryParse(doc.totals['totalPayments'] ?? '0') ?? 0;
-          // جمع المبيعات النقدية لحساب الصندوق
           for (var sale in doc.sales) {
             if (sale.cashOrDebt == 'نقدي') {
               cashSalesTotal += double.tryParse(sale.total) ?? 0;
@@ -90,7 +88,6 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
         final doc = await _purchasesStorageService.loadDocumentForDate(date);
         if (doc != null) {
           purchases += double.tryParse(doc.totals['totalPayments'] ?? '0') ?? 0;
-          // جمع المشتريات النقدية لحساب الصندوق
           for (var purchase in doc.purchases) {
             if (purchase.cashOrDebt == 'نقدي') {
               cashPurchasesTotal += double.tryParse(purchase.total) ?? 0;
@@ -120,7 +117,7 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
         setState(() {
           _salesTotal = sales;
           _purchasesTotal = purchases;
-          _boxReceived = boxBalance; // رصيد الصندوق الكلي (يدوي + نقدي)
+          _boxReceived = boxBalance;
           _expensesTotal = expenses;
           _customersBalance = custBalance;
           _suppliersBalance = suppBalance;
@@ -277,12 +274,13 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── قسم المتاجرة ──
+                      // ── العمود الأيسر: حساب المتاجرة + حساب الأرباح والخسائر فوق بعض ──
                       SizedBox(
-                        width: MediaQuery.of(context).size.width / 3,
+                        width: (MediaQuery.of(context).size.width / 3) * 2,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
+                            // حساب المتاجرة
                             _sectionHeader('حساب المتاجرة', tradingColor),
                             _twoColRow(
                               _cell('المشتريات',
@@ -319,15 +317,8 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
                                   : _purchasesTotal.toStringAsFixed(2),
                               tradingColor,
                             ),
-                          ],
-                        ),
-                      ),
-                      // ── قسم الأرباح والخسائر ──
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width / 3,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
+                            const SizedBox(height: 16),
+                            // حساب الأرباح والخسائر
                             _sectionHeader('حساب الأرباح والخسائر', plColor),
                             _twoColRow(
                               _cell(
@@ -374,7 +365,7 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
                           ],
                         ),
                       ),
-                      // ── قسم الميزانية ──
+                      // ── العمود الأيمن: الميزانية الختامية ──
                       SizedBox(
                         width: MediaQuery.of(context).size.width / 3,
                         child: Column(

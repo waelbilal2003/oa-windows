@@ -1211,13 +1211,13 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           IconButton(
             icon: const Icon(
               Icons.picture_as_pdf,
-              size: 70,
+              size: 60,
             ),
             tooltip: 'تصدير PDF',
             onPressed: () => _generateAndSharePdf(),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.calendar_month, size: 70),
+            icon: const Icon(Icons.calendar_month, size: 60),
             tooltip: 'فتح يومية سابقة',
             onSelected: (selectedDate) async {
               if (selectedDate != widget.selectedDate) {

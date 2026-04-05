@@ -1384,7 +1384,7 @@ class _BoxScreenState extends State<BoxScreen> {
             Row(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.picture_as_pdf, size: 70),
+                  icon: const Icon(Icons.picture_as_pdf, size: 60),
                   tooltip: 'تصدير PDF',
                   onPressed: () => _generateAndSharePdf(),
                   padding: const EdgeInsets.all(8),
@@ -1392,7 +1392,7 @@ class _BoxScreenState extends State<BoxScreen> {
                       const BoxConstraints(minWidth: 36, minHeight: 36),
                 ),
                 PopupMenuButton<String>(
-                  icon: const Icon(Icons.calendar_month, size: 70),
+                  icon: const Icon(Icons.calendar_month, size: 60),
                   tooltip: 'فتح يومية سابقة',
                   padding: const EdgeInsets.all(8),
                   onSelected: (selectedDate) async {
