@@ -257,13 +257,17 @@ class _BoxScreenState extends State<BoxScreen> {
   Future<void> _loadGrandTotal() async {
     double totalRec = 0.0, totalPaid = 0.0;
 
-    // 1. جمع أرصدة يوميات الصندوق (السجلات اليدوية فقط)
-    for (var dateInfo in _availableDates) {
+    // 1. جمع أرصدة يوميات الصندوق (من المعاملات مباشرة وليس من الإجمالي المحفوظ)
+    final boxDates = await _storageService.getAvailableDatesWithNumbers();
+    for (var dateInfo in boxDates) {
       final doc =
           await _storageService.loadBoxDocumentForDate(dateInfo['date']!);
       if (doc != null) {
-        totalRec += double.tryParse(doc.totals['totalReceived'] ?? '0') ?? 0;
-        totalPaid += double.tryParse(doc.totals['totalPaid'] ?? '0') ?? 0;
+        // *** التعديل الرئيسي هنا: المرور على المعاملات لضمان الدقة ***
+        for (var transaction in doc.transactions) {
+          totalRec += double.tryParse(transaction.received) ?? 0;
+          totalPaid += double.tryParse(transaction.paid) ?? 0;
+        }
       }
     }
 

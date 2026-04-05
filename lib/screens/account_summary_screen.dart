@@ -53,10 +53,10 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
         final doc =
             await _boxStorageService.loadBoxDocumentForDate(dateInfo['date']!);
         if (doc != null) {
-          boxManualReceived +=
-              double.tryParse(doc.totals['totalReceived'] ?? '0') ?? 0;
-          boxManualPaid += double.tryParse(doc.totals['totalPaid'] ?? '0') ?? 0;
+          // *** التعديل الرئيسي هنا: المرور على المعاملات بدلاً من الاعتماد على "totals" ***
           for (var trans in doc.transactions) {
+            boxManualReceived += double.tryParse(trans.received) ?? 0;
+            boxManualPaid += double.tryParse(trans.paid) ?? 0;
             if (trans.accountType == 'مصروف') {
               expensesTotalPaid += double.tryParse(trans.paid) ?? 0;
               expensesTotalReceived += double.tryParse(trans.received) ?? 0;
@@ -272,133 +272,171 @@ class _AccountSummaryScreenState extends State<AccountSummaryScreen> {
           : Directionality(
               textDirection: TextDirection.rtl,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(5),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _sectionHeader('حساب المتاجرة', tradingColor),
-                    _twoColRow(
-                      _cell('المشتريات', _purchasesTotal.toStringAsFixed(2)),
-                      _cell('المبيعات', _salesTotal.toStringAsFixed(2)),
-                    ),
-                    if (!isTradingEqual)
-                      _twoColRow(
-                        isTradingProfit
-                            ? _cell('ربح المتاجرة', tradingX.toStringAsFixed(2),
-                                bgColor: Colors.green.shade50,
-                                textColor: Colors.green.shade800,
-                                isBold: true,
-                                valueColor: Colors.green.shade800)
-                            : _cell('', ''),
-                        isTradingProfit
-                            ? _cell('', '')
-                            : _cell('خسارة المتاجرة',
-                                tradingX.abs().toStringAsFixed(2),
-                                bgColor: Colors.red.shade50,
-                                textColor: Colors.red.shade800,
-                                isBold: true,
-                                valueColor: Colors.red.shade800),
-                      ),
-                    _totalRow(
-                      'المجموع',
-                      isTradingProfit
-                          ? _salesTotal.toStringAsFixed(2)
-                          : _purchasesTotal.toStringAsFixed(2),
-                      'المجموع',
-                      isTradingProfit
-                          ? _salesTotal.toStringAsFixed(2)
-                          : _purchasesTotal.toStringAsFixed(2),
-                      tradingColor,
-                    ),
-                    const SizedBox(height: 7),
-                    _sectionHeader('حساب الأرباح والخسائر', plColor),
-                    _twoColRow(
-                      _cell('المصروف', _expensesTotal.toStringAsFixed(2)),
-                      isTradingProfit
-                          ? _cell('الربح التجاري', tradingX.toStringAsFixed(2))
-                          : _cell('', ''),
-                    ),
-                    if (!isTradingProfit && !isTradingEqual)
-                      _twoColRow(
-                        _cell('الخسارة التجارية',
-                            tradingX.abs().toStringAsFixed(2)),
-                        _cell('', ''),
-                      ),
-                    if (!isNetEqual)
-                      _twoColRow(
-                        isNetProfit
-                            ? _cell('صافي الربح', netResult.toStringAsFixed(2),
-                                bgColor: Colors.green.shade50,
-                                textColor: Colors.green.shade800,
-                                isBold: true,
-                                valueColor: Colors.green.shade800)
-                            : _cell('', ''),
-                        isNetProfit
-                            ? _cell('', '')
-                            : _cell('صافي الخسارة',
-                                netResult.abs().toStringAsFixed(2),
-                                bgColor: Colors.red.shade50,
-                                textColor: Colors.red.shade800,
-                                isBold: true,
-                                valueColor: Colors.red.shade800),
-                      ),
-                    _totalRow(
-                      'المجموع',
-                      (isNetProfit ? plLeft : plRight).toStringAsFixed(2),
-                      'المجموع',
-                      (isNetProfit ? plLeft : plRight).toStringAsFixed(2),
-                      plColor,
-                    ),
-                    const SizedBox(height: 7),
-                    _sectionHeader('الميزانية الختامية', balColor),
-                    _twoColRow(
-                      _cell('الزبائن', _customersBalance.toStringAsFixed(2)),
-                      _cell('الموردين', _suppliersBalance.toStringAsFixed(2)),
-                    ),
-                    _twoColRow(
-                      _cell('الصندوق', totalBoxBalance.toStringAsFixed(2)),
-                      _cell('رأس المال', capital.toStringAsFixed(2)),
-                    ),
-                    if (!isNetEqual)
-                      _twoColRow(
-                        !isNetProfit
-                            ? _cell('صافي الخسارة',
-                                netResult.abs().toStringAsFixed(2),
-                                bgColor: Colors.red.shade50,
-                                textColor: Colors.red.shade800,
-                                isBold: true,
-                                valueColor: Colors.red.shade800)
-                            : _cell('', ''),
-                        isNetProfit
-                            ? _cell('صافي الربح', netResult.toStringAsFixed(2),
-                                bgColor: Colors.green.shade50,
-                                textColor: Colors.green.shade800,
-                                isBold: true,
-                                valueColor: Colors.green.shade800)
-                            : _cell('', ''),
-                      ),
-                    _totalRow(
-                      'المجموع',
-                      balanceRight.toStringAsFixed(2),
-                      'المجموع',
-                      balanceLeft.toStringAsFixed(2),
-                      balColor,
-                    ),
-                    if ((balanceRight - balanceLeft).abs() > 0.01)
-                      Container(
-                        color: Colors.orange.shade100,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 6, horizontal: 8),
-                        child: Text(
-                          'الفرق: ${(balanceRight - balanceLeft).toStringAsFixed(2)}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.orange.shade900,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13),
+                scrollDirection: Axis.horizontal,
+                child: IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── قسم المتاجرة ──
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _sectionHeader('حساب المتاجرة', tradingColor),
+                            _twoColRow(
+                              _cell('المشتريات',
+                                  _purchasesTotal.toStringAsFixed(2)),
+                              _cell('المبيعات', _salesTotal.toStringAsFixed(2)),
+                            ),
+                            if (!isTradingEqual)
+                              _twoColRow(
+                                isTradingProfit
+                                    ? _cell('ربح المتاجرة',
+                                        tradingX.toStringAsFixed(2),
+                                        bgColor: Colors.green.shade50,
+                                        textColor: Colors.green.shade800,
+                                        isBold: true,
+                                        valueColor: Colors.green.shade800)
+                                    : _cell('', ''),
+                                isTradingProfit
+                                    ? _cell('', '')
+                                    : _cell('خسارة المتاجرة',
+                                        tradingX.abs().toStringAsFixed(2),
+                                        bgColor: Colors.red.shade50,
+                                        textColor: Colors.red.shade800,
+                                        isBold: true,
+                                        valueColor: Colors.red.shade800),
+                              ),
+                            _totalRow(
+                              'المجموع',
+                              isTradingProfit
+                                  ? _salesTotal.toStringAsFixed(2)
+                                  : _purchasesTotal.toStringAsFixed(2),
+                              'المجموع',
+                              isTradingProfit
+                                  ? _salesTotal.toStringAsFixed(2)
+                                  : _purchasesTotal.toStringAsFixed(2),
+                              tradingColor,
+                            ),
+                          ],
                         ),
                       ),
-                  ],
+                      // ── قسم الأرباح والخسائر ──
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _sectionHeader('حساب الأرباح والخسائر', plColor),
+                            _twoColRow(
+                              _cell(
+                                  'المصروف', _expensesTotal.toStringAsFixed(2)),
+                              isTradingProfit
+                                  ? _cell('الربح التجاري',
+                                      tradingX.toStringAsFixed(2))
+                                  : _cell('', ''),
+                            ),
+                            if (!isTradingProfit && !isTradingEqual)
+                              _twoColRow(
+                                _cell('الخسارة التجارية',
+                                    tradingX.abs().toStringAsFixed(2)),
+                                _cell('', ''),
+                              ),
+                            if (!isNetEqual)
+                              _twoColRow(
+                                isNetProfit
+                                    ? _cell('صافي الربح',
+                                        netResult.toStringAsFixed(2),
+                                        bgColor: Colors.green.shade50,
+                                        textColor: Colors.green.shade800,
+                                        isBold: true,
+                                        valueColor: Colors.green.shade800)
+                                    : _cell('', ''),
+                                isNetProfit
+                                    ? _cell('', '')
+                                    : _cell('صافي الخسارة',
+                                        netResult.abs().toStringAsFixed(2),
+                                        bgColor: Colors.red.shade50,
+                                        textColor: Colors.red.shade800,
+                                        isBold: true,
+                                        valueColor: Colors.red.shade800),
+                              ),
+                            _totalRow(
+                              'المجموع',
+                              (isNetProfit ? plLeft : plRight)
+                                  .toStringAsFixed(2),
+                              'المجموع',
+                              (isNetProfit ? plLeft : plRight)
+                                  .toStringAsFixed(2),
+                              plColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                      // ── قسم الميزانية ──
+                      SizedBox(
+                        width: MediaQuery.of(context).size.width / 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _sectionHeader('الميزانية الختامية', balColor),
+                            _twoColRow(
+                              _cell('الزبائن',
+                                  _customersBalance.toStringAsFixed(2)),
+                              _cell('الموردين',
+                                  _suppliersBalance.toStringAsFixed(2)),
+                            ),
+                            _twoColRow(
+                              _cell('الصندوق',
+                                  totalBoxBalance.toStringAsFixed(2)),
+                              _cell('رأس المال', capital.toStringAsFixed(2)),
+                            ),
+                            if (!isNetEqual)
+                              _twoColRow(
+                                !isNetProfit
+                                    ? _cell('صافي الخسارة',
+                                        netResult.abs().toStringAsFixed(2),
+                                        bgColor: Colors.red.shade50,
+                                        textColor: Colors.red.shade800,
+                                        isBold: true,
+                                        valueColor: Colors.red.shade800)
+                                    : _cell('', ''),
+                                isNetProfit
+                                    ? _cell('صافي الربح',
+                                        netResult.toStringAsFixed(2),
+                                        bgColor: Colors.green.shade50,
+                                        textColor: Colors.green.shade800,
+                                        isBold: true,
+                                        valueColor: Colors.green.shade800)
+                                    : _cell('', ''),
+                              ),
+                            _totalRow(
+                              'المجموع',
+                              balanceRight.toStringAsFixed(2),
+                              'المجموع',
+                              balanceLeft.toStringAsFixed(2),
+                              balColor,
+                            ),
+                            if ((balanceRight - balanceLeft).abs() > 0.01)
+                              Container(
+                                color: Colors.orange.shade100,
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 6, horizontal: 8),
+                                child: Text(
+                                  'الفرق: ${(balanceRight - balanceLeft).toStringAsFixed(2)}',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                      color: Colors.orange.shade900,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

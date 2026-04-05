@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // أضف هذا الاستيراد
 import 'daily_movement_screen.dart';
 import '../widgets/exit_button.dart';
+import 'login_screen.dart';
 
 class DateSelectionScreen extends StatefulWidget {
   final String storeType;
@@ -35,6 +36,18 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
     setState(() {
       _selectedDate = DateTime(currentYear, currentMonth, currentDay);
     });
+  }
+
+  void _goToLogin() {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => LoginScreen(
+          storeType: widget.storeType,
+          storeName: widget.storeName,
+          sellerName: widget.sellerName,
+        ),
+      ),
+    );
   }
 
   void _navigateToDailyMovement() {
@@ -134,8 +147,8 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        // عند الضغط على زر الرجوع الجهازي، نخرج من التطبيق تماماً
-        return true;
+        _goToLogin();
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -148,7 +161,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               ExitButton(
-                onPressed: () => Navigator.of(context).pop(),
+                onPressed: () => _goToLogin(),
               ),
               const Text(
                 'اختيار التاريخ',
@@ -168,7 +181,7 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
               const SingleActivator(LogicalKeyboardKey.numpadEnter):
                   _navigateToDailyMovement,
               const SingleActivator(LogicalKeyboardKey.escape): () =>
-                  Navigator.of(context).pop(),
+                  _goToLogin(),
             },
             child: Focus(
               autofocus: true,

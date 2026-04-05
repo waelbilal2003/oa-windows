@@ -174,7 +174,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
         onKey: (event) {
           if (event is RawKeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.escape) {
-            Navigator.of(context).pop();
+            SystemNavigator.pop();
           }
         },
         child: Scaffold(
@@ -194,7 +194,6 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const HelpScreen()),
                     ),
-                    icon: const Icon(Icons.help_outline, size: 18),
                     label: const Text('مساعدة'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -214,7 +213,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 ExitButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => SystemNavigator.pop(),
                 ),
               ],
             ),
@@ -511,7 +510,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
         onKey: (event) {
           if (event is RawKeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.escape) {
-            Navigator.of(context).pop();
+            SystemNavigator.pop();
           }
         },
         child: Scaffold(
@@ -532,7 +531,6 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
                     onPressed: () => Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const HelpScreen()),
                     ),
-                    icon: const Icon(Icons.help_outline, size: 18),
                     label: const Text('مساعدة'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -552,7 +550,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
                 ),
                 ExitButton(
-                  onPressed: () => Navigator.of(context).pop(),
+                  onPressed: () => SystemNavigator.pop(),
                 ),
               ],
             ),
