@@ -67,14 +67,14 @@ class _CustomerSelectionScreenState extends State<CustomerSelectionScreen> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ExitButton(
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              const SizedBox(width: 140),
               const Text(
                 'اختر زبوناً لعرض الفاتورة',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              const SizedBox(width: 140),
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ],
           ),
           centerTitle: true,

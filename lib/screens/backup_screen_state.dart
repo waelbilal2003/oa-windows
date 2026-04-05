@@ -359,14 +359,14 @@ class _BackupScreenState extends State<BackupScreen> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ExitButton(
-                onPressed: _handleBackButton,
-              ),
+              const SizedBox(width: 140),
               const Text(
                 'النسخ الاحتياطي',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
               ),
-              const SizedBox(width: 140),
+              ExitButton(
+                onPressed: _handleBackButton,
+              ),
             ],
           ),
           centerTitle: true,

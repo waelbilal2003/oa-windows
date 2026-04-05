@@ -11,6 +11,7 @@ import '../../services/invoices_service.dart';
 import '../../services/supplier_index_service.dart';
 import '../../widgets/date_range_filter.dart';
 import '../../widgets/exit_button.dart';
+import 'package:flutter/services.dart';
 
 class SupplierPurchasesScreen extends StatefulWidget {
   final String selectedDate;
@@ -39,12 +40,19 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
   DateTime? _filterTo;
   List<Purchase> _allItems = [];
   List<Purchase> _filteredItems = [];
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _loadItems();
     _loadSupplierBalance();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSupplierBalance() async {
@@ -359,250 +367,276 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        toolbarHeight: 70,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ExitButton(
-              onPressed: () => Navigator.of(context).pop(),
+    return RawKeyboardListener(
+      focusNode: FocusNode(),
+      autofocus: true,
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            _scrollController.animateTo(
+              (_scrollController.offset + 150)
+                  .clamp(0, _scrollController.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 80),
+              curve: Curves.easeInOut,
+            );
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            _scrollController.animateTo(
+              (_scrollController.offset - 150)
+                  .clamp(0, _scrollController.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 801),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              Text(
+                'مشتريات من المورد ${widget.supplierName}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.red[700],
+          foregroundColor: Colors.white,
+          actions: [
+            DateRangeFilterIcon(
+              from: _filterFrom,
+              to: _filterTo,
+              onFromChanged: (date) {
+                setState(() => _filterFrom = date);
+                _loadItems();
+              },
+              onToChanged: (date) {
+                setState(() => _filterTo = date);
+                _loadItems();
+              },
+              onClear: () {
+                setState(() {
+                  _filterFrom = null;
+                  _filterTo = null;
+                });
+                _loadItems();
+              },
+              color: Colors.white,
             ),
-            Text(
-              'مشتريات من المورد ${widget.supplierName}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              tooltip: 'مشاركة PDF',
+              onPressed: () async {
+                if (_filteredItems.isNotEmpty) {
+                  _generateAndSharePdf(_filteredItems);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('لا توجد بيانات لمشاركتها')),
+                  );
+                }
+              },
             ),
-            const SizedBox(width: 140),
           ],
         ),
-        centerTitle: true,
-        backgroundColor: Colors.red[700],
-        foregroundColor: Colors.white,
-        actions: [
-          DateRangeFilterIcon(
-            from: _filterFrom,
-            to: _filterTo,
-            onFromChanged: (date) {
-              setState(() => _filterFrom = date);
-              _loadItems();
-            },
-            onToChanged: (date) {
-              setState(() => _filterTo = date);
-              _loadItems();
-            },
-            onClear: () {
-              setState(() {
-                _filterFrom = null;
-                _filterTo = null;
-              });
-              _loadItems();
-            },
-            color: Colors.white,
-          ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'مشاركة PDF',
-            onPressed: () async {
-              if (_filteredItems.isNotEmpty) {
-                _generateAndSharePdf(_filteredItems);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('لا توجد بيانات لمشاركتها')),
+        body: Directionality(
+          textDirection: TextDirection.rtl,
+          child: FutureBuilder<List<Purchase>>(
+            future: _purchasesDataFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(child: Text('حدث خطأ: ${snapshot.error}'));
+              }
+
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'لا توجد مشتريات من هذا المورد في اليوم المحدد',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
                 );
               }
-            },
-          ),
-        ],
-      ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: FutureBuilder<List<Purchase>>(
-          future: _purchasesDataFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
 
-            if (snapshot.hasError) {
-              return Center(child: Text('حدث خطأ: ${snapshot.error}'));
-            }
-
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  'لا توجد مشتريات من هذا المورد في اليوم المحدد',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              );
-            }
-
-            if (_allItems.isEmpty) {
-              _allItems = snapshot.data!;
-              _filteredItems = List.from(_allItems);
-            }
-
-            final displayItems = _filteredItems;
-
-            if (displayItems.isEmpty &&
-                (_filterFrom != null || _filterTo != null)) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.filter_alt_off,
-                        size: 48, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'لا توجد بيانات في النطاق الزمني المحدد',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _filterFrom = null;
-                          _filterTo = null;
-                        });
-                        _loadItems();
-                      },
-                      child: const Text('مسح الفلتر'),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            double totalStanding = 0;
-            double totalNet = 0;
-            double totalCount = 0;
-            double totalGrand = 0;
-            for (var item in displayItems) {
-              totalStanding += double.tryParse(item.standing) ?? 0;
-              totalNet += double.tryParse(item.net) ?? 0;
-              totalCount += double.tryParse(item.count) ?? 0;
-              if (item.cashOrDebt != 'نقدي') {
-                totalGrand += double.tryParse(item.total) ?? 0;
+              if (_allItems.isEmpty) {
+                _allItems = snapshot.data!;
+                _filteredItems = List.from(_allItems);
               }
-            }
 
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Column(
-                  children: [
-                    FilterChipWidget(
-                      from: _filterFrom,
-                      to: _filterTo,
-                      onClear: () {
-                        setState(() {
-                          _filterFrom = null;
-                          _filterTo = null;
-                        });
-                        _loadItems();
-                      },
-                      color: Colors.white,
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.red.shade200),
-                        borderRadius: BorderRadius.circular(4),
+              final displayItems = _filteredItems;
+
+              if (displayItems.isEmpty &&
+                  (_filterFrom != null || _filterTo != null)) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.filter_alt_off,
+                          size: 48, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'لا توجد بيانات في النطاق الزمني المحدد',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
                       ),
-                      child: Column(
-                        children: [
-                          Container(
-                            color: Colors.red.shade400,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              children: [
-                                _buildHeaderCell('التاريخ', 2),
-                                _buildHeaderCell('المادة', 4),
-                                _buildHeaderCell('العدد', 2),
-                                _buildHeaderCell('العبوة', 3),
-                                _buildHeaderCell('القائم', 2),
-                                _buildHeaderCell('الصافي', 2),
-                                _buildHeaderCell('السعر', 2),
-                                _buildHeaderCell('الإجمالي', 3),
-                              ],
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _filterFrom = null;
+                            _filterTo = null;
+                          });
+                          _loadItems();
+                        },
+                        child: const Text('مسح الفلتر'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              double totalStanding = 0;
+              double totalNet = 0;
+              double totalCount = 0;
+              double totalGrand = 0;
+              for (var item in displayItems) {
+                totalStanding += double.tryParse(item.standing) ?? 0;
+                totalNet += double.tryParse(item.net) ?? 0;
+                totalCount += double.tryParse(item.count) ?? 0;
+                if (item.cashOrDebt != 'نقدي') {
+                  totalGrand += double.tryParse(item.total) ?? 0;
+                }
+              }
+
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Column(
+                    children: [
+                      FilterChipWidget(
+                        from: _filterFrom,
+                        to: _filterTo,
+                        onClear: () {
+                          setState(() {
+                            _filterFrom = null;
+                            _filterTo = null;
+                          });
+                          _loadItems();
+                        },
+                        color: Colors.white,
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.red.shade200),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              color: Colors.red.shade400,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  _buildHeaderCell('التاريخ', 2),
+                                  _buildHeaderCell('المادة', 4),
+                                  _buildHeaderCell('العدد', 2),
+                                  _buildHeaderCell('العبوة', 3),
+                                  _buildHeaderCell('القائم', 2),
+                                  _buildHeaderCell('الصافي', 2),
+                                  _buildHeaderCell('السعر', 2),
+                                  _buildHeaderCell('الإجمالي', 3),
+                                ],
+                              ),
                             ),
-                          ),
-                          ...displayItems.map((item) => Container(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: displayItems.indexOf(item) % 2 == 0
-                                      ? Colors.white
-                                      : Colors.red.shade50,
-                                  border: Border(
-                                      bottom: BorderSide(
-                                          color: Colors.grey.shade300)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    _buildDataCell(item.date, 2),
-                                    _buildDataCell(item.material, 4),
-                                    _buildDataCell(item.count, 2),
-                                    _buildDataCell(item.packaging, 3),
-                                    _buildDataCell(item.standing, 2),
-                                    _buildDataCell(item.net, 2),
-                                    _buildDataCell(item.price, 2),
-                                    _buildDataCell(item.total, 3,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.red.shade900),
-                                  ],
-                                ),
-                              )),
-                          Container(
-                            color: Colors.red.shade100,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              children: [
-                                _buildDataCell('المجموع', 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell('', 4),
-                                _buildDataCell(totalCount.toStringAsFixed(0), 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell('', 3),
-                                _buildDataCell(
-                                    totalStanding.toStringAsFixed(2), 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell(totalNet.toStringAsFixed(2), 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell('', 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell(totalGrand.toStringAsFixed(2), 3,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.red.shade900),
-                              ],
+                            ...displayItems.map((item) => Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: displayItems.indexOf(item) % 2 == 0
+                                        ? Colors.white
+                                        : Colors.red.shade50,
+                                    border: Border(
+                                        bottom: BorderSide(
+                                            color: Colors.grey.shade300)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      _buildDataCell(item.date, 2),
+                                      _buildDataCell(item.material, 4),
+                                      _buildDataCell(item.count, 2),
+                                      _buildDataCell(item.packaging, 3),
+                                      _buildDataCell(item.standing, 2),
+                                      _buildDataCell(item.net, 2),
+                                      _buildDataCell(item.price, 2),
+                                      _buildDataCell(item.total, 3,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.red.shade900),
+                                    ],
+                                  ),
+                                )),
+                            Container(
+                              color: Colors.red.shade100,
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  _buildDataCell('المجموع', 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell('', 4),
+                                  _buildDataCell(
+                                      totalCount.toStringAsFixed(0), 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell('', 3),
+                                  _buildDataCell(
+                                      totalStanding.toStringAsFixed(2), 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell(totalNet.toStringAsFixed(2), 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell('', 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell(
+                                      totalGrand.toStringAsFixed(2), 3,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red.shade900),
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16.0),
-                      margin: const EdgeInsets.only(top: 8.0),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade800,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'المجموع ${totalGrand.toStringAsFixed(2)} ليرة سورية فقط لا غير  الرصيد : ${_supplierBalance != null ? _supplierBalance!.toStringAsFixed(2) : '---'}.',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16.0),
+                        margin: const EdgeInsets.only(top: 8.0),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade800,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          'المجموع ${totalGrand.toStringAsFixed(2)} ليرة سورية فقط لا غير  الرصيد : ${_supplierBalance != null ? _supplierBalance!.toStringAsFixed(2) : '---'}.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

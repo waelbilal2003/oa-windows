@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // أضف هذا الاستيراد
 import 'daily_movement_screen.dart';
+import '../widgets/exit_button.dart';
 
 class DateSelectionScreen extends StatefulWidget {
   final String storeType;
@@ -134,20 +135,28 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
     return WillPopScope(
       onWillPop: () async {
         // عند الضغط على زر الرجوع الجهازي، نخرج من التطبيق تماماً
-        SystemNavigator.pop();
-        return false;
+        return true;
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text(
-            'اختيار التاريخ',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
           backgroundColor: Colors.teal[600],
           foregroundColor: Colors.white,
-          centerTitle: true,
-          // تم إزالة زر الرجوع (السهم) من AppBar
-          automaticallyImplyLeading: false,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const Text(
+                'اختيار التاريخ',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
         ),
         body: Directionality(
           textDirection: TextDirection.rtl,
@@ -158,6 +167,8 @@ class _DateSelectionScreenState extends State<DateSelectionScreen> {
                   _navigateToDailyMovement,
               const SingleActivator(LogicalKeyboardKey.numpadEnter):
                   _navigateToDailyMovement,
+              const SingleActivator(LogicalKeyboardKey.escape): () =>
+                  Navigator.of(context).pop(),
             },
             child: Focus(
               autofocus: true,

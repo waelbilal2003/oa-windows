@@ -47,6 +47,7 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
   Map<String, TextEditingController> _supplierMobileControllers = {};
   Map<String, FocusNode> _supplierMobileFocusNodes = {};
 
+  final ScrollController _scrollController = ScrollController();
   void _handleBackButton() {
     Navigator.of(context).pop();
   }
@@ -75,6 +76,7 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
     _supplierBalanceFocusNodes.values.forEach((n) => n.dispose());
     _supplierMobileControllers.values.forEach((c) => c.dispose());
     _supplierMobileFocusNodes.values.forEach((n) => n.dispose());
+    _scrollController.dispose();
 
     super.dispose();
   }
@@ -341,54 +343,77 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        toolbarHeight: 70,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ExitButton(
-              onPressed: _handleBackButton,
-            ),
-            const Text(
-              'أرصدة البداية',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-            ),
-            const SizedBox(width: 140),
-          ],
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.deepOrange[700],
-        foregroundColor: Colors.white,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Directionality(
-              textDirection: TextDirection.rtl,
-              child: Column(
-                children: [
-                  Container(
-                    color: Colors.deepOrange[50],
-                    child: Row(
-                      children: [
-                        _buildTabButton(0, 'الصندوق', Icons.inbox),
-                        _buildTabButton(1, 'الزبائن', Icons.people),
-                        _buildTabButton(2, 'الموردين', Icons.store),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: _activeTab == 0
-                        ? _buildBoxTab()
-                        : _activeTab == 1
-                            ? _buildCustomersTab()
-                            : _buildSuppliersTab(),
-                  ),
-                ],
+    return RawKeyboardListener(
+      focusNode: FocusNode(),
+      autofocus: true,
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            _scrollController.animateTo(
+              (_scrollController.offset + 150)
+                  .clamp(0, _scrollController.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 80),
+              curve: Curves.easeInOut,
+            );
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            _scrollController.animateTo(
+              (_scrollController.offset - 150)
+                  .clamp(0, _scrollController.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 80),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: _handleBackButton,
               ),
-            ),
+              const Text(
+                'أرصدة البداية',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.deepOrange[700],
+          foregroundColor: Colors.white,
+        ),
+        body: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Directionality(
+                textDirection: TextDirection.rtl,
+                child: Column(
+                  children: [
+                    Container(
+                      color: Colors.deepOrange[50],
+                      child: Row(
+                        children: [
+                          _buildTabButton(0, 'الصندوق', Icons.inbox),
+                          _buildTabButton(1, 'الزبائن', Icons.people),
+                          _buildTabButton(2, 'الموردين', Icons.store),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: _activeTab == 0
+                          ? _buildBoxTab()
+                          : _activeTab == 1
+                              ? _buildCustomersTab()
+                              : _buildSuppliersTab(),
+                    ),
+                  ],
+                ),
+              ),
+      ),
     );
   }
 

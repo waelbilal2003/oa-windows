@@ -614,6 +614,35 @@ class _SalesScreenState extends State<SalesScreen> {
     if (_currentFocusRow == -1 || _currentFocusCol == -1) return;
     int newRow = _currentFocusRow + deltaRow;
     int newCol = _currentFocusCol + deltaCol;
+
+    // النزول إلى سطر المجاميع
+    if (newRow == rowFocusNodes.length) {
+      FocusScope.of(context).unfocus();
+      _currentFocusRow = rowFocusNodes.length;
+      _currentFocusCol = newCol.clamp(0, 10);
+      // تمرير للأسفل لإظهار سطر المجاميع
+      _verticalScrollController.animateTo(
+        _verticalScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+      return;
+    }
+
+    // الصعود من سطر المجاميع
+    if (_currentFocusRow == rowFocusNodes.length) {
+      if (deltaRow == -1 && rowFocusNodes.isNotEmpty) {
+        int targetRow = rowFocusNodes.length - 1;
+        int targetCol =
+            _currentFocusCol.clamp(0, rowFocusNodes[targetRow].length - 1);
+        FocusScope.of(context)
+            .requestFocus(rowFocusNodes[targetRow][targetCol]);
+        _currentFocusRow = targetRow;
+        _currentFocusCol = targetCol;
+      }
+      return;
+    }
+
     if (newRow >= 0 && newRow < rowFocusNodes.length) {
       if (newCol >= 0 && newCol < rowFocusNodes[newRow].length) {
         FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
@@ -1041,26 +1070,35 @@ class _SalesScreenState extends State<SalesScreen> {
                 const SizedBox(width: 8),
                 Focus(
                   focusNode: _addButtonFocusNode,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      _addNewRow();
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (rowFocusNodes.isNotEmpty) {
-                          final newRowIndex = rowFocusNodes.length - 1;
-                          FocusScope.of(context)
-                              .requestFocus(rowFocusNodes[newRowIndex][0]);
-                        }
-                      });
-                    },
-                    icon: const Icon(Icons.add, size: 18),
-                    label: const Text('إضافة'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.orange[700],
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  child: SizedBox(
+                    width: 140,
+                    height: 80,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _addNewRow();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (rowFocusNodes.isNotEmpty) {
+                            final newRowIndex = rowFocusNodes.length - 1;
+                            FocusScope.of(context)
+                                .requestFocus(rowFocusNodes[newRowIndex][0]);
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 14, 82, 184),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 3,
+                      ),
+                      child: const Text(
+                        'إضافة',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ),
@@ -1131,12 +1169,18 @@ class _SalesScreenState extends State<SalesScreen> {
         foregroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
+            icon: const Icon(
+              Icons.picture_as_pdf,
+              size: 70,
+            ),
             tooltip: 'تصدير PDF',
             onPressed: () => _generateAndSharePdf(),
           ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.calendar_month),
+            icon: const Icon(
+              Icons.calendar_month,
+              size: 70,
+            ),
             tooltip: 'فتح يومية سابقة',
             onSelected: (selectedDate) async {
               if (selectedDate != widget.selectedDate) {
@@ -1233,9 +1277,9 @@ class _SalesScreenState extends State<SalesScreen> {
                 });
               }
             } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              _moveFocus(0, 1);
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
               _moveFocus(0, -1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _moveFocus(0, 1);
             } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
               _moveFocus(1, 0);
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -1245,33 +1289,6 @@ class _SalesScreenState extends State<SalesScreen> {
         },
         child: _buildMainContent(),
       ),
-      floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
-          ? null
-          : Container(
-              margin: const EdgeInsets.only(bottom: 16, right: 16),
-              child: Material(
-                color: Colors.orange[700],
-                borderRadius: BorderRadius.circular(12),
-                elevation: 8,
-                child: InkWell(
-                  onTap: _addNewRow,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 16),
-                    child: const Text(
-                      'إضافة',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startDocked,
       resizeToAvoidBottomInset: true,
     );
   }

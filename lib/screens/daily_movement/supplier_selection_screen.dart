@@ -70,14 +70,14 @@ class _SupplierSelectionScreenState extends State<SupplierSelectionScreen> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ExitButton(
-                onPressed: () => Navigator.of(context).pop(),
-              ),
+              const SizedBox(width: 140),
               const Text(
                 'اختر مورداً لعرض التفاصيل',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              const SizedBox(width: 140),
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
             ],
           ),
           centerTitle: true,

@@ -12,11 +12,8 @@ class BoxStorageService {
     } else {
       directory = await getApplicationDocumentsDirectory();
     }
-    // توحيد المسار في مجلد MarketLedger
-    final basePath = '${directory!.path}/MarketLedger';
-    final folder = Directory(basePath);
-    if (!await folder.exists()) await folder.create(recursive: true);
-    return basePath;
+    // *** التعديل: تم الرجوع للمنطق القديم لضمان التوافق ***
+    return directory!.path;
   }
 
   // *** تعديل: هذه الدالة الآن هي الأساس وتعتمد على التاريخ فقط ***
@@ -29,6 +26,7 @@ class BoxStorageService {
   Future<bool> saveBoxDocument(BoxDocument document) async {
     try {
       final basePath = await _getBasePath();
+      // *** التعديل: تم بناء المسار ليتوافق مع _getBasePath الجديدة ***
       final folderPath = '$basePath/BoxJournals';
       final folder = Directory(folderPath);
       if (!await folder.exists()) await folder.create(recursive: true);

@@ -38,6 +38,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // متغيرات إعدادات حجم الخط والأيقونة
   double _fontScalePercent = 0.0;
   double _iconScalePercent = 0.0;
+  final ScrollController _scrollController = ScrollController();
 
   void _handleBackButton() {
     Navigator.of(context).pop();
@@ -69,6 +70,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _addItemController.dispose();
     _addItemFocusNode.dispose();
+    _scrollController.dispose();
     _disposeItemControllers();
     super.dispose();
   }
@@ -1066,14 +1068,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
           foregroundColor: Colors.white,
           elevation: 0,
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              _buildMainButtons(),
-              const SizedBox(height: 20),
-              _buildCurrentList(),
-            ],
+        body: RawKeyboardListener(
+          focusNode: FocusNode(),
+          autofocus: true,
+          onKey: (RawKeyEvent event) {
+            if (event is RawKeyDownEvent) {
+              if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                _scrollController.animateTo(
+                  (_scrollController.offset + 150)
+                      .clamp(0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 80),
+                  curve: Curves.easeInOut,
+                );
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                _scrollController.animateTo(
+                  (_scrollController.offset - 150)
+                      .clamp(0, _scrollController.position.maxScrollExtent),
+                  duration: const Duration(milliseconds: 80),
+                  curve: Curves.easeInOut,
+                );
+              }
+            }
+          },
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildMainButtons(),
+                const SizedBox(height: 20),
+                _buildCurrentList(),
+              ],
+            ),
           ),
         ),
       ),

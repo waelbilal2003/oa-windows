@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'date_selection_screen.dart'; // إضافة الاستيراد
+import 'date_selection_screen.dart';
+import '../widgets/exit_button.dart';
+import 'help_screen.dart';
 
 // ════════════════════════════════════════════════════
 // شاشة تسجيل الدخول — تحديد كلمة المرور أو إدخالها
@@ -128,6 +130,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
   bool _obscurePass = true;
   bool _obscureConfirm = true;
   String? _errorMsg;
+  final FocusNode _screenFocusNode = FocusNode();
 
   @override
   void dispose() {
@@ -135,6 +138,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
     _confirmController.dispose();
     _passFocus.dispose();
     _confirmFocus.dispose();
+    _screenFocusNode.dispose();
     super.dispose();
   }
 
@@ -164,103 +168,153 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Colors.green[50],
-        body: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Card(
-              elevation: 6,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              child: Padding(
-                padding: const EdgeInsets.all(28),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.lock_outline,
-                        size: 64, color: Colors.green[700]),
-                    const SizedBox(height: 12),
-                    Text(
-                      'تعيين كلمة المرور',
-                      style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green[800]),
+      child: RawKeyboardListener(
+        focusNode: _screenFocusNode,
+        autofocus: true,
+        onKey: (event) {
+          if (event is RawKeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.green[50],
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            titleSpacing: 0,
+            toolbarHeight: 70,
+            backgroundColor: Colors.green[700],
+            foregroundColor: Colors.white,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: 140,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const HelpScreen()),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'سيتم استخدام هذه الكلمة لحماية التطبيق',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 28),
-                    TextField(
-                      controller: _passController,
-                      focusNode: _passFocus,
-                      obscureText: _obscurePass,
-                      textInputAction: TextInputAction.next,
-                      onSubmitted: (_) =>
-                          FocusScope.of(context).requestFocus(_confirmFocus),
-                      decoration: InputDecoration(
-                        labelText: 'كلمة المرور',
-                        prefixIcon: const Icon(Icons.lock),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscurePass
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: () =>
-                              setState(() => _obscurePass = !_obscurePass),
-                        ),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                    icon: const Icon(Icons.help_outline, size: 18),
+                    label: const Text('مساعدة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green[800],
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _confirmController,
-                      focusNode: _confirmFocus,
-                      obscureText: _obscureConfirm,
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _save(),
-                      decoration: InputDecoration(
-                        labelText: 'تأكيد كلمة المرور',
-                        prefixIcon: const Icon(Icons.lock_reset),
-                        suffixIcon: IconButton(
-                          icon: Icon(_obscureConfirm
-                              ? Icons.visibility_off
-                              : Icons.visibility),
-                          onPressed: () => setState(
-                              () => _obscureConfirm = !_obscureConfirm),
-                        ),
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const Text(
+                  'تعيين كلمة المرور',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                ExitButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          body: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(32),
+              child: Card(
+                elevation: 6,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_outline,
+                          size: 64, color: Colors.green[700]),
+                      const SizedBox(height: 12),
+                      Text(
+                        'تعيين كلمة المرور',
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green[800]),
                       ),
-                    ),
-                    if (_errorMsg != null) ...[
-                      const SizedBox(height: 10),
-                      Text(_errorMsg!,
-                          style:
-                              const TextStyle(color: Colors.red, fontSize: 13)),
-                    ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: _save,
-                        icon: const Icon(Icons.save),
-                        label: const Text('حفظ كلمة المرور',
-                            style: TextStyle(fontSize: 16)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
+                      const SizedBox(height: 8),
+                      Text(
+                        'سيتم استخدام هذه الكلمة لحماية التطبيق',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 28),
+                      TextField(
+                        controller: _passController,
+                        focusNode: _passFocus,
+                        obscureText: _obscurePass,
+                        textInputAction: TextInputAction.next,
+                        onSubmitted: (_) =>
+                            FocusScope.of(context).requestFocus(_confirmFocus),
+                        decoration: InputDecoration(
+                          labelText: 'كلمة المرور',
+                          prefixIcon: const Icon(Icons.lock),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscurePass
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () =>
+                                setState(() => _obscurePass = !_obscurePass),
+                          ),
+                          border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10)),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _confirmController,
+                        focusNode: _confirmFocus,
+                        obscureText: _obscureConfirm,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _save(),
+                        decoration: InputDecoration(
+                          labelText: 'تأكيد كلمة المرور',
+                          prefixIcon: const Icon(Icons.lock_reset),
+                          suffixIcon: IconButton(
+                            icon: Icon(_obscureConfirm
+                                ? Icons.visibility_off
+                                : Icons.visibility),
+                            onPressed: () => setState(
+                                () => _obscureConfirm = !_obscureConfirm),
+                          ),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                      if (_errorMsg != null) ...[
+                        const SizedBox(height: 10),
+                        Text(_errorMsg!,
+                            style: const TextStyle(
+                                color: Colors.red, fontSize: 13)),
+                      ],
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _save,
+                          icon: const Icon(Icons.save),
+                          label: const Text('حفظ كلمة المرور',
+                              style: TextStyle(fontSize: 16)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[700],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -291,6 +345,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
 
   bool _obscure = true;
   String? _errorMsg;
+  final FocusNode _screenFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -303,6 +358,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
   void dispose() {
     _passController.dispose();
     _passFocus.dispose();
+    _screenFocusNode.dispose();
     super.dispose();
   }
 
@@ -449,106 +505,158 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        backgroundColor: Colors.green[50],
-        body: Column(
-          children: [
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: TextButton.icon(
-                    onPressed: _showChangePasswordDialog,
-                    icon: Icon(Icons.lock_reset, color: Colors.green[700]),
-                    label: Text('تغيير كلمة المرور',
-                        style: TextStyle(color: Colors.green[700])),
+      child: RawKeyboardListener(
+        focusNode: _screenFocusNode,
+        autofocus: true,
+        onKey: (event) {
+          if (event is RawKeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            Navigator.of(context).pop();
+          }
+        },
+        child: Scaffold(
+          backgroundColor: Colors.green[50],
+          appBar: AppBar(
+            automaticallyImplyLeading: false,
+            titleSpacing: 0,
+            toolbarHeight: 70,
+            backgroundColor: Colors.green[700],
+            foregroundColor: Colors.white,
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: 140,
+                  height: 80,
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const HelpScreen()),
+                    ),
+                    icon: const Icon(Icons.help_outline, size: 18),
+                    label: const Text('مساعدة'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.green[800],
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+                const Text(
+                  'تسجيل الدخول',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                ExitButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+          body: Column(
+            children: [
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: TextButton.icon(
+                      onPressed: _showChangePasswordDialog,
+                      icon: Icon(Icons.lock_reset, color: Colors.green[700]),
+                      label: Text('تغيير كلمة المرور',
+                          style: TextStyle(color: Colors.green[700])),
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
-                  child: Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.lock, size: 64, color: Colors.green[700]),
-                          const SizedBox(height: 12),
-                          Text(
-                            'تسجيل الدخول',
-                            style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[800]),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'أدخل كلمة المرور للمتابعة',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                fontSize: 13, color: Colors.grey[600]),
-                          ),
-                          const SizedBox(height: 28),
-                          TextField(
-                            controller: _passController,
-                            focusNode: _passFocus,
-                            obscureText: _obscure,
-                            textInputAction: TextInputAction.done,
-                            onSubmitted: (_) => _login(),
-                            decoration: InputDecoration(
-                              labelText: 'كلمة المرور',
-                              prefixIcon: const Icon(Icons.lock),
-                              suffixIcon: IconButton(
-                                icon: Icon(_obscure
-                                    ? Icons.visibility_off
-                                    : Icons.visibility),
-                                onPressed: () =>
-                                    setState(() => _obscure = !_obscure),
-                              ),
-                              border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10)),
+              Expanded(
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(32),
+                    child: Card(
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.lock,
+                                size: 64, color: Colors.green[700]),
+                            const SizedBox(height: 12),
+                            Text(
+                              'تسجيل الدخول',
+                              style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green[800]),
                             ),
-                          ),
-                          if (_errorMsg != null) ...[
-                            const SizedBox(height: 10),
-                            Text(_errorMsg!,
-                                style: const TextStyle(
-                                    color: Colors.red, fontSize: 13)),
-                          ],
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              onPressed: _login,
-                              icon: const Icon(Icons.login),
-                              label: const Text('دخول',
-                                  style: TextStyle(fontSize: 16)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[700],
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
+                            const SizedBox(height: 8),
+                            Text(
+                              'أدخل كلمة المرور للمتابعة',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                  fontSize: 13, color: Colors.grey[600]),
+                            ),
+                            const SizedBox(height: 28),
+                            TextField(
+                              controller: _passController,
+                              focusNode: _passFocus,
+                              obscureText: _obscure,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => _login(),
+                              decoration: InputDecoration(
+                                labelText: 'كلمة المرور',
+                                prefixIcon: const Icon(Icons.lock),
+                                suffixIcon: IconButton(
+                                  icon: Icon(_obscure
+                                      ? Icons.visibility_off
+                                      : Icons.visibility),
+                                  onPressed: () =>
+                                      setState(() => _obscure = !_obscure),
+                                ),
+                                border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(10)),
                               ),
                             ),
-                          ),
-                        ],
+                            if (_errorMsg != null) ...[
+                              const SizedBox(height: 10),
+                              Text(_errorMsg!,
+                                  style: const TextStyle(
+                                      color: Colors.red, fontSize: 13)),
+                            ],
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _login,
+                                icon: const Icon(Icons.login),
+                                label: const Text('دخول',
+                                    style: TextStyle(fontSize: 16)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green[700],
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

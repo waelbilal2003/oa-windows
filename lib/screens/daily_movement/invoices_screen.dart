@@ -11,6 +11,9 @@ import '../../services/invoices_service.dart';
 import '../../services/customer_index_service.dart';
 import '../../widgets/date_range_filter.dart';
 import '../../widgets/exit_button.dart';
+import 'package:flutter/services.dart';
+
+final ScrollController _scrollController = ScrollController();
 
 class InvoicesScreen extends StatefulWidget {
   final String selectedDate;
@@ -44,6 +47,12 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     super.initState();
     _loadItems();
     _loadCustomerBalance();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCustomerBalance() async {
@@ -361,185 +370,249 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        titleSpacing: 0,
-        toolbarHeight: 70,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            ExitButton(
-              onPressed: () => Navigator.of(context).pop(),
+    return RawKeyboardListener(
+      focusNode: FocusNode(),
+      autofocus: true,
+      onKey: (RawKeyEvent event) {
+        if (event is RawKeyDownEvent) {
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            _scrollController.animateTo(
+              (_scrollController.offset + 150)
+                  .clamp(0, _scrollController.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 80),
+              curve: Curves.easeInOut,
+            );
+          } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            _scrollController.animateTo(
+              (_scrollController.offset - 150)
+                  .clamp(0, _scrollController.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 80),
+              curve: Curves.easeInOut,
+            );
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              ExitButton(
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              Text(
+                'فاتورة الزبون ${widget.customerName}',
+                style:
+                    const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.indigo[700],
+          foregroundColor: Colors.white,
+          actions: [
+            DateRangeFilterIcon(
+              from: _filterFrom,
+              to: _filterTo,
+              onFromChanged: (date) {
+                setState(() => _filterFrom = date);
+                _loadItems();
+              },
+              onToChanged: (date) {
+                setState(() => _filterTo = date);
+                _loadItems();
+              },
+              onClear: () {
+                setState(() {
+                  _filterFrom = null;
+                  _filterTo = null;
+                });
+                _loadItems();
+              },
+              color: Colors.white,
             ),
-            Text(
-              'فاتورة الزبون ${widget.customerName}',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            IconButton(
+              icon: const Icon(Icons.picture_as_pdf),
+              tooltip: 'مشاركة PDF',
+              onPressed: () async {
+                if (_filteredItems.isNotEmpty) {
+                  _generateAndSharePdf(_filteredItems, _customerBalance);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('لا توجد بيانات لمشاركتها')),
+                  );
+                }
+              },
             ),
-            const SizedBox(width: 140),
           ],
         ),
-        centerTitle: true,
-        backgroundColor: Colors.indigo[700],
-        foregroundColor: Colors.white,
-        actions: [
-          DateRangeFilterIcon(
-            from: _filterFrom,
-            to: _filterTo,
-            onFromChanged: (date) {
-              setState(() => _filterFrom = date);
-              _loadItems();
-            },
-            onToChanged: (date) {
-              setState(() => _filterTo = date);
-              _loadItems();
-            },
-            onClear: () {
-              setState(() {
-                _filterFrom = null;
-                _filterTo = null;
-              });
-              _loadItems();
-            },
-            color: Colors.white,
-          ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'مشاركة PDF',
-            onPressed: () async {
-              if (_filteredItems.isNotEmpty) {
-                _generateAndSharePdf(_filteredItems, _customerBalance);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('لا توجد بيانات لمشاركتها')),
+        body: Directionality(
+          textDirection: TextDirection.rtl,
+          child: FutureBuilder<List<InvoiceItem>>(
+            future: _invoiceDataFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return Center(child: Text('حدث خطأ: ${snapshot.error}'));
+              }
+
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'لا توجد فواتير دين لهذا الزبون في اليوم المحدد',
+                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                  ),
                 );
               }
-            },
-          ),
-        ],
-      ),
-      body: Directionality(
-        textDirection: TextDirection.rtl,
-        child: FutureBuilder<List<InvoiceItem>>(
-          future: _invoiceDataFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
 
-            if (snapshot.hasError) {
-              return Center(child: Text('حدث خطأ: ${snapshot.error}'));
-            }
+              if (_allItems.isEmpty) {
+                _allItems = snapshot.data!;
+                _filteredItems = List.from(_allItems);
+              }
 
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(
-                child: Text(
-                  'لا توجد فواتير دين لهذا الزبون في اليوم المحدد',
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-              );
-            }
+              final displayItems = _filteredItems;
 
-            if (_allItems.isEmpty) {
-              _allItems = snapshot.data!;
-              _filteredItems = List.from(_allItems);
-            }
+              if (displayItems.isEmpty &&
+                  (_filterFrom != null || _filterTo != null)) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.filter_alt_off,
+                          size: 48, color: Colors.grey),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'لا توجد بيانات في النطاق الزمني المحدد',
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 8),
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _filterFrom = null;
+                            _filterTo = null;
+                          });
+                          _loadItems();
+                        },
+                        child: const Text('مسح الفلتر'),
+                      ),
+                    ],
+                  ),
+                );
+              }
 
-            final displayItems = _filteredItems;
+              double totalStanding = 0;
+              double totalNet = 0;
+              double grandTotal = 0;
+              int totalCount = 0;
+              for (var item in displayItems) {
+                totalStanding += double.tryParse(item.standing) ?? 0;
+                totalNet += double.tryParse(item.net) ?? 0;
+                totalCount += int.tryParse(item.count) ?? 0;
+                grandTotal += double.tryParse(item.total) ?? 0;
+              }
 
-            if (displayItems.isEmpty &&
-                (_filterFrom != null || _filterTo != null)) {
-              return Center(
+              final String balanceText = _customerBalance != null
+                  ? _customerBalance!.toStringAsFixed(2)
+                  : '---';
+
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.filter_alt_off,
-                        size: 48, color: Colors.grey),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'لا توجد بيانات في النطاق الزمني المحدد',
-                      style: TextStyle(fontSize: 16, color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: () {
+                    FilterChipWidget(
+                      from: _filterFrom,
+                      to: _filterTo,
+                      onClear: () {
                         setState(() {
                           _filterFrom = null;
                           _filterTo = null;
                         });
                         _loadItems();
                       },
-                      child: const Text('مسح الفلتر'),
+                      color: Colors.white,
                     ),
-                  ],
-                ),
-              );
-            }
-
-            double totalStanding = 0;
-            double totalNet = 0;
-            double grandTotal = 0;
-            int totalCount = 0;
-            for (var item in displayItems) {
-              totalStanding += double.tryParse(item.standing) ?? 0;
-              totalNet += double.tryParse(item.net) ?? 0;
-              totalCount += int.tryParse(item.count) ?? 0;
-              grandTotal += double.tryParse(item.total) ?? 0;
-            }
-
-            final String balanceText = _customerBalance != null
-                ? _customerBalance!.toStringAsFixed(2)
-                : '---';
-
-            return Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                children: [
-                  FilterChipWidget(
-                    from: _filterFrom,
-                    to: _filterTo,
-                    onClear: () {
-                      setState(() {
-                        _filterFrom = null;
-                        _filterTo = null;
-                      });
-                      _loadItems();
-                    },
-                    color: Colors.white,
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12.0, horizontal: 4.0),
-                    decoration: BoxDecoration(
-                        color: Colors.indigo.shade400,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          topRight: Radius.circular(8),
-                        ),
-                        border: Border.all(color: Colors.indigo.shade200)),
-                    child: Row(
-                      children: [
-                        _buildHeaderCell('التاريخ', 2),
-                        _buildHeaderCell('المادة', 4),
-                        _buildHeaderCell('العدد', 2),
-                        _buildHeaderCell('العبوة', 3),
-                        _buildHeaderCell('القائم', 2),
-                        _buildHeaderCell('الصافي', 2),
-                        _buildHeaderCell('السعر', 2),
-                        _buildHeaderCell('الإجمالي', 3),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 12.0, horizontal: 4.0),
+                      decoration: BoxDecoration(
+                          color: Colors.indigo.shade400,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(8),
+                            topRight: Radius.circular(8),
+                          ),
+                          border: Border.all(color: Colors.indigo.shade200)),
+                      child: Row(
+                        children: [
+                          _buildHeaderCell('التاريخ', 2),
+                          _buildHeaderCell('المادة', 4),
+                          _buildHeaderCell('العدد', 2),
+                          _buildHeaderCell('العبوة', 3),
+                          _buildHeaderCell('القائم', 2),
+                          _buildHeaderCell('الصافي', 2),
+                          _buildHeaderCell('السعر', 2),
+                          _buildHeaderCell('الإجمالي', 3),
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: displayItems.length + 1,
-                      itemBuilder: (context, index) {
-                        if (index == displayItems.length) {
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: displayItems.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == displayItems.length) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 10.0, horizontal: 4.0),
+                              decoration: BoxDecoration(
+                                color: Colors.indigo.shade100,
+                                border: Border(
+                                  bottom:
+                                      BorderSide(color: Colors.grey.shade300),
+                                  left: BorderSide(color: Colors.grey.shade300),
+                                  right:
+                                      BorderSide(color: Colors.grey.shade300),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  _buildDataCell('المجموع', 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell('', 4),
+                                  _buildDataCell(
+                                      totalCount.toStringAsFixed(0), 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell('', 3),
+                                  _buildDataCell(
+                                      totalStanding.toStringAsFixed(2), 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell(totalNet.toStringAsFixed(2), 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell('', 2,
+                                      fontWeight: FontWeight.bold),
+                                  _buildDataCell(
+                                      grandTotal.toStringAsFixed(2), 3,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.indigo.shade900),
+                                ],
+                              ),
+                            );
+                          }
+
+                          final item = displayItems[index];
                           return Container(
                             padding: const EdgeInsets.symmetric(
                                 vertical: 10.0, horizontal: 4.0),
                             decoration: BoxDecoration(
-                              color: Colors.indigo.shade100,
+                              color: index.isEven
+                                  ? Colors.white
+                                  : Colors.indigo.shade50,
                               border: Border(
                                 bottom: BorderSide(color: Colors.grey.shade300),
                                 left: BorderSide(color: Colors.grey.shade300),
@@ -548,84 +621,48 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                             ),
                             child: Row(
                               children: [
-                                _buildDataCell('المجموع', 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell('', 4),
-                                _buildDataCell(totalCount.toStringAsFixed(0), 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell('', 3),
+                                _buildDataCell(item.date, 2),
+                                _buildDataCell(item.material, 4),
+                                _buildDataCell(item.count, 2),
+                                _buildDataCell(item.packaging, 3),
+                                _buildDataCell(item.standing, 2),
+                                _buildDataCell(item.net, 2),
+                                _buildDataCell(item.price, 2),
                                 _buildDataCell(
-                                    totalStanding.toStringAsFixed(2), 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell(totalNet.toStringAsFixed(2), 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell('', 2,
-                                    fontWeight: FontWeight.bold),
-                                _buildDataCell(grandTotal.toStringAsFixed(2), 3,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.indigo.shade900),
+                                  item.total,
+                                  3,
+                                  color: Colors.indigo.shade900,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ],
                             ),
                           );
-                        }
-
-                        final item = displayItems[index];
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 10.0, horizontal: 4.0),
-                          decoration: BoxDecoration(
-                            color: index.isEven
-                                ? Colors.white
-                                : Colors.indigo.shade50,
-                            border: Border(
-                              bottom: BorderSide(color: Colors.grey.shade300),
-                              left: BorderSide(color: Colors.grey.shade300),
-                              right: BorderSide(color: Colors.grey.shade300),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              _buildDataCell(item.date, 2),
-                              _buildDataCell(item.material, 4),
-                              _buildDataCell(item.count, 2),
-                              _buildDataCell(item.packaging, 3),
-                              _buildDataCell(item.standing, 2),
-                              _buildDataCell(item.net, 2),
-                              _buildDataCell(item.price, 2),
-                              _buildDataCell(
-                                item.total,
-                                3,
-                                color: Colors.indigo.shade900,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16.0),
-                    margin: const EdgeInsets.only(top: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.indigo.shade800,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'المجموع ${grandTotal.toStringAsFixed(2)} ليرة سورية فقط لا غير  الرصيد : $balanceText.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        },
                       ),
                     ),
-                  ),
-                ],
-              ),
-            );
-          },
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16.0),
+                      margin: const EdgeInsets.only(top: 8.0),
+                      decoration: BoxDecoration(
+                        color: Colors.indigo.shade800,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        'المجموع ${grandTotal.toStringAsFixed(2)} ليرة سورية فقط لا غير  الرصيد : $balanceText.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );

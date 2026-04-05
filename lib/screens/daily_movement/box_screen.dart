@@ -181,6 +181,35 @@ class _BoxScreenState extends State<BoxScreen> {
     if (_currentFocusRow == -1 || _currentFocusCol == -1) return;
     int newRow = _currentFocusRow + deltaRow;
     int newCol = _currentFocusCol + deltaCol;
+
+    // النزول إلى سطر المجاميع
+    if (newRow == rowFocusNodes.length) {
+      FocusScope.of(context).unfocus();
+      _currentFocusRow = rowFocusNodes.length;
+      _currentFocusCol = newCol.clamp(0, 10);
+      // تمرير للأسفل لإظهار سطر المجاميع
+      _verticalScrollController.animateTo(
+        _verticalScrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+      return;
+    }
+
+    // الصعود من سطر المجاميع
+    if (_currentFocusRow == rowFocusNodes.length) {
+      if (deltaRow == -1 && rowFocusNodes.isNotEmpty) {
+        int targetRow = rowFocusNodes.length - 1;
+        int targetCol =
+            _currentFocusCol.clamp(0, rowFocusNodes[targetRow].length - 1);
+        FocusScope.of(context)
+            .requestFocus(rowFocusNodes[targetRow][targetCol]);
+        _currentFocusRow = targetRow;
+        _currentFocusCol = targetCol;
+      }
+      return;
+    }
+
     if (newRow >= 0 && newRow < rowFocusNodes.length) {
       if (newCol >= 0 && newCol < rowFocusNodes[newRow].length) {
         FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
@@ -1235,172 +1264,196 @@ class _BoxScreenState extends State<BoxScreen> {
       appBar: AppBar(
         backgroundColor: const Color.fromARGB(255, 14, 82, 184),
         foregroundColor: Colors.white,
-        centerTitle: true,
-        titleSpacing: 0,
         automaticallyImplyLeading: false,
-        leadingWidth: 148,
-        leading: Row(
+        titleSpacing: 0,
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            ExitButton(
-              onPressed: () => Navigator.of(context).pop(),
+            Row(
+              children: [
+                ExitButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(width: 8),
+                Focus(
+                  focusNode: _addButtonFocusNode,
+                  child: SizedBox(
+                    width: 140,
+                    height: 80,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _addNewRow();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (rowFocusNodes.isNotEmpty) {
+                            final newRowIndex = rowFocusNodes.length - 1;
+                            FocusScope.of(context)
+                                .requestFocus(rowFocusNodes[newRowIndex][0]);
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color.fromARGB(255, 14, 82, 184),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 3,
+                      ),
+                      child: const Text(
+                        'إضافة',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Focus(
-              focusNode: _addButtonFocusNode,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _addNewRow();
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (rowFocusNodes.isNotEmpty) {
-                      final newRowIndex = rowFocusNodes.length - 1;
-                      FocusScope.of(context)
-                          .requestFocus(rowFocusNodes[newRowIndex][0]);
-                    }
-                  });
-                },
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('إضافة'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color.fromARGB(255, 14, 82, 184),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            if (_showFullScreenSuggestions &&
+                _getSuggestionsByType().isNotEmpty)
+              Expanded(
+                child: SuggestionsBanner(
+                  suggestions: _getSuggestionsByType(),
+                  type: _currentSuggestionType,
+                  currentRowIndex: _getCurrentRowIndexByType(),
+                  scrollController: _horizontalSuggestionsController,
+                  onSelect: (val, idx) {
+                    if (_currentSuggestionType == 'customer')
+                      _selectCustomerSuggestion(val, idx);
+                    if (_currentSuggestionType == 'supplier')
+                      _selectSupplierSuggestion(val, idx);
+                  },
+                  onClose: () =>
+                      _toggleFullScreenSuggestions(type: '', show: false),
+                ),
+              )
+            else
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'الصندوق - ${widget.selectedDate}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          height: 1.5),
+                      textAlign: TextAlign.center,
+                    ),
+                    Directionality(
+                      textDirection: TextDirection.rtl,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text('الرصيد الكلي: ',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.white70)),
+                          Text(
+                            (_grandTotalReceived - _grandTotalPaid)
+                                .toStringAsFixed(2),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  (_grandTotalReceived - _grandTotalPaid) >= 0
+                                      ? Colors.lightGreenAccent
+                                      : Colors.redAccent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.picture_as_pdf, size: 70),
+                  tooltip: 'تصدير PDF',
+                  onPressed: () => _generateAndSharePdf(),
+                  padding: const EdgeInsets.all(8),
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                ),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.calendar_month, size: 70),
+                  tooltip: 'فتح يومية سابقة',
+                  padding: const EdgeInsets.all(8),
+                  onSelected: (selectedDate) async {
+                    if (selectedDate != widget.selectedDate) {
+                      if (_hasUnsavedChanges) {
+                        final shouldSave = await _showUnsavedChangesDialog();
+                        if (shouldSave) {
+                          await _saveCurrentRecord(silent: true);
+                        }
+                      }
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => BoxScreen(
+                            sellerName: widget.sellerName,
+                            selectedDate: selectedDate,
+                            storeName: widget.storeName,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  itemBuilder: (BuildContext context) {
+                    List<PopupMenuEntry<String>> items = [];
+                    if (_isLoadingDates) {
+                      items.add(const PopupMenuItem<String>(
+                        value: '',
+                        enabled: false,
+                        child: Text('جاري التحميل...'),
+                      ));
+                    } else if (_availableDates.isEmpty) {
+                      items.add(const PopupMenuItem<String>(
+                        value: '',
+                        enabled: false,
+                        child: Text('لا توجد يوميات سابقة'),
+                      ));
+                    } else {
+                      items.add(const PopupMenuItem<String>(
+                        value: '',
+                        enabled: false,
+                        child: Text(
+                          'اليوميات المتاحة',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ));
+                      items.add(const PopupMenuDivider());
+                      for (var dateInfo in _availableDates) {
+                        final date = dateInfo['date']!;
+                        items.add(PopupMenuItem<String>(
+                          value: date,
+                          child: Text(
+                            'يومية تاريخ $date',
+                            style: TextStyle(
+                              fontWeight: date == widget.selectedDate
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                              color: date == widget.selectedDate
+                                  ? Colors.blue
+                                  : Colors.black,
+                            ),
+                          ),
+                        ));
+                      }
+                    }
+                    return items;
+                  },
+                ),
+                const SizedBox(width: 4),
+              ],
             ),
           ],
         ),
-        title: _showFullScreenSuggestions && _getSuggestionsByType().isNotEmpty
-            ? SuggestionsBanner(
-                suggestions: _getSuggestionsByType(),
-                type: _currentSuggestionType,
-                currentRowIndex: _getCurrentRowIndexByType(),
-                scrollController: _horizontalSuggestionsController,
-                onSelect: (val, idx) {
-                  if (_currentSuggestionType == 'customer')
-                    _selectCustomerSuggestion(val, idx);
-                  if (_currentSuggestionType == 'supplier')
-                    _selectSupplierSuggestion(val, idx);
-                },
-                onClose: () =>
-                    _toggleFullScreenSuggestions(type: '', show: false),
-              )
-            : Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'الصندوق - ${widget.selectedDate}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold, fontSize: 16, height: 1.5),
-                    textAlign: TextAlign.center,
-                  ),
-                  Directionality(
-                    textDirection: TextDirection.rtl,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('الرصيد الكلي: ',
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.white70)),
-                        Text(
-                          (_grandTotalReceived - _grandTotalPaid)
-                              .toStringAsFixed(2),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: (_grandTotalReceived - _grandTotalPaid) >= 0
-                                ? Colors.lightGreenAccent
-                                : Colors.redAccent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf, size: 22),
-            tooltip: 'تصدير PDF',
-            onPressed: () => _generateAndSharePdf(),
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.calendar_month, size: 22),
-            tooltip: 'فتح يومية سابقة',
-            padding: const EdgeInsets.all(8),
-            onSelected: (selectedDate) async {
-              if (selectedDate != widget.selectedDate) {
-                if (_hasUnsavedChanges) {
-                  final shouldSave = await _showUnsavedChangesDialog();
-                  if (shouldSave) {
-                    await _saveCurrentRecord(silent: true);
-                  }
-                }
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => BoxScreen(
-                      sellerName: widget.sellerName,
-                      selectedDate: selectedDate,
-                      storeName: widget.storeName,
-                    ),
-                  ),
-                );
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              List<PopupMenuEntry<String>> items = [];
-              if (_isLoadingDates) {
-                items.add(const PopupMenuItem<String>(
-                  value: '',
-                  enabled: false,
-                  child: Text('جاري التحميل...'),
-                ));
-              } else if (_availableDates.isEmpty) {
-                items.add(const PopupMenuItem<String>(
-                  value: '',
-                  enabled: false,
-                  child: Text('لا توجد يوميات سابقة'),
-                ));
-              } else {
-                items.add(const PopupMenuItem<String>(
-                  value: '',
-                  enabled: false,
-                  child: Text(
-                    'اليوميات المتاحة',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ));
-                items.add(const PopupMenuDivider());
-                for (var dateInfo in _availableDates) {
-                  final date = dateInfo['date']!;
-                  items.add(PopupMenuItem<String>(
-                    value: date,
-                    child: Text(
-                      'يومية تاريخ $date',
-                      style: TextStyle(
-                        fontWeight: date == widget.selectedDate
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: date == widget.selectedDate
-                            ? Colors.blue
-                            : Colors.black,
-                      ),
-                    ),
-                  ));
-                }
-              }
-              return items;
-            },
-          ),
-          const SizedBox(width: 4),
-        ],
       ),
       body: RawKeyboardListener(
         focusNode: FocusNode(),
@@ -1421,9 +1474,9 @@ class _BoxScreenState extends State<BoxScreen> {
                 });
               }
             } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              _moveFocus(0, 1);
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
               _moveFocus(0, -1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _moveFocus(0, 1);
             } else if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
               _moveFocus(1, 0);
             } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
@@ -1433,33 +1486,6 @@ class _BoxScreenState extends State<BoxScreen> {
         },
         child: _buildMainContent(),
       ),
-      floatingActionButton: MediaQuery.of(context).viewInsets.bottom > 0
-          ? null
-          : Container(
-              margin: const EdgeInsets.only(bottom: 16, right: 16),
-              child: Material(
-                color: const Color.fromARGB(255, 14, 82, 184),
-                borderRadius: BorderRadius.circular(12),
-                elevation: 8,
-                child: InkWell(
-                  onTap: _addNewRow,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 28, vertical: 16),
-                    child: const Text(
-                      'إضافة',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.startDocked,
       resizeToAvoidBottomInset: true,
     );
   }
