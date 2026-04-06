@@ -215,9 +215,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     if (newRow < 0) newRow = 0;
     if (newRow >= rowFocusNodes.length) newRow = rowFocusNodes.length - 1;
 
-    // حدود الأعمدة: المادة(0) حتى السعر(5) فقط — لا يمر الإجمالي ولا نقدي/دين
+    // حدود الأعمدة: المادة(0) حتى السعر(7) فقط — لا يمر الإجمالي ولا نقدي/دين
     const int minCol = 0;
-    const int maxCol = 5;
+    const int maxCol = 7;
     if (newCol < minCol) newCol = minCol;
     if (newCol > maxCol) newCol = maxCol;
 
