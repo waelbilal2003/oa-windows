@@ -211,11 +211,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     int newRow = _currentFocusRow + deltaRow;
     int newCol = _currentFocusCol + deltaCol;
 
+    // حدود الصفوف
     if (newRow < 0) newRow = 0;
     if (newRow >= rowFocusNodes.length) newRow = rowFocusNodes.length - 1;
-    if (newCol < 0) newCol = 0;
-    if (newCol >= rowFocusNodes[newRow].length)
-      newCol = rowFocusNodes[newRow].length - 1;
+
+    // حدود الأعمدة: المادة(0) حتى السعر(5) فقط — لا يمر الإجمالي ولا نقدي/دين
+    const int minCol = 0;
+    const int maxCol = 5;
+    if (newCol < minCol) newCol = minCol;
+    if (newCol > maxCol) newCol = maxCol;
 
     FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
     _currentFocusRow = newRow;
@@ -1789,17 +1793,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       }
     }
     if (mounted) setState(() => _grandTotal = total);
-  }
-
-  void _scrollToRevealTotalsIfNeeded(int currentRowIndex) {
-    // إذا كان الصف الحالي ضمن آخر 3 صفوف (أو هو آخر صف)
-    if (rowFocusNodes.length - currentRowIndex <= 3) {
-      _verticalScrollController.animateTo(
-        _verticalScrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    }
   }
 
   void _adjustScrollPosition(int currentRowIndex) {

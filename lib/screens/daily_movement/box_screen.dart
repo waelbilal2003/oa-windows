@@ -194,11 +194,15 @@ class _BoxScreenState extends State<BoxScreen> {
     int newRow = _currentFocusRow + deltaRow;
     int newCol = _currentFocusCol + deltaCol;
 
+    // حدود الصفوف
     if (newRow < 0) newRow = 0;
     if (newRow >= rowFocusNodes.length) newRow = rowFocusNodes.length - 1;
-    if (newCol < 0) newCol = 0;
-    if (newCol >= rowFocusNodes[newRow].length)
-      newCol = rowFocusNodes[newRow].length - 1;
+
+    // حدود الأعمدة: المقبوض(0) والمدفوع(1) فقط
+    const int minCol = 0;
+    const int maxCol = 1;
+    if (newCol < minCol) newCol = minCol;
+    if (newCol > maxCol) newCol = maxCol;
 
     FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
     _currentFocusRow = newRow;
@@ -2269,17 +2273,6 @@ class _BoxScreenState extends State<BoxScreen> {
 
       _calculateAllTotals();
     });
-  }
-
-  void _scrollToRevealTotalsIfNeeded(int currentRowIndex) {
-    // إذا كان الصف الحالي ضمن آخر 3 صفوف (أو هو آخر صف)
-    if (rowFocusNodes.length - currentRowIndex <= 3) {
-      _verticalScrollController.animateTo(
-        _verticalScrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-      );
-    }
   }
 
   void _adjustScrollPosition(int currentRowIndex) {
