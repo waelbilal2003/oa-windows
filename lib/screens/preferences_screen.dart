@@ -50,6 +50,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   bool _isSmallScreen = false;
   final FocusNode _globalFocusNode = FocusNode();
 
+  // عدد الأعمدة في وضع الشاشة الكبيرة
+  final int _columnsCount = 3;
+
   final List<Map<String, dynamic>> _buttons = [
     {
       'icon': Icons.account_balance,
@@ -77,9 +80,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     _focusNodes = List.generate(6, (_) => FocusNode());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        FocusScope.of(context).requestFocus(_focusNodes[0]);
-        _focusedIndex = 0;
-        setState(() {});
+        // بدء المؤشر على زر تفصيلات الحساب (index 0)
+        _setFocus(0);
       }
     });
   }
@@ -102,13 +104,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
     final key = event.logicalKey;
 
-    // ملاحظة: لا توجد حاجة لـ event.consume() في Flutter
-    // النظام سيتعامل مع الحدث تلقائياً
-
     if (key == LogicalKeyboardKey.arrowLeft) {
-      _moveFocusRight();
-    } else if (key == LogicalKeyboardKey.arrowRight) {
       _moveFocusLeft();
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      _moveFocusRight();
     } else if (key == LogicalKeyboardKey.arrowUp) {
       _moveFocusUp();
     } else if (key == LogicalKeyboardKey.arrowDown) {
@@ -121,41 +120,73 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     }
   }
 
-  void _moveFocusRight() {
-    if (_isSmallScreen) return;
-    int newIndex = _focusedIndex + 1;
-    if (newIndex < 6 && newIndex % 3 != 0) {
-      _setFocus(newIndex);
+  void _moveFocusLeft() {
+    if (_isSmallScreen) {
+      // في الشاشة الصغيرة: تنقل عمودي
+      int newIndex = _focusedIndex - 1;
+      if (newIndex >= 0) {
+        _setFocus(newIndex);
+      }
+    } else {
+      // في الشاشة الكبيرة: تنقل أفقي - لأن العربية من اليمين لليسار
+      // الزر الأيمن في الواجهة هو الفهرس الأصغر (0, 3)
+      // الزر الأيسر في الواجهة هو الفهرس الأكبر (2, 5)
+      int currentRow = _focusedIndex ~/ _columnsCount;
+      int nextCol = (_focusedIndex % _columnsCount) + 1;
+      if (nextCol < _columnsCount) {
+        int newIndex = currentRow * _columnsCount + nextCol;
+        if (newIndex < _buttons.length) {
+          _setFocus(newIndex);
+        }
+      }
     }
   }
 
-  void _moveFocusLeft() {
-    if (_isSmallScreen) return;
-    int newIndex = _focusedIndex - 1;
-    if (newIndex >= 0 && (_focusedIndex % 3) != 0) {
-      _setFocus(newIndex);
+  void _moveFocusRight() {
+    if (_isSmallScreen) {
+      // في الشاشة الصغيرة: تنقل عمودي
+      int newIndex = _focusedIndex + 1;
+      if (newIndex < _buttons.length) {
+        _setFocus(newIndex);
+      }
+    } else {
+      // في الشاشة الكبيرة: تنقل أفقي - لأن العربية من اليمين لليسار
+      // الزر الأيمن في الواجهة هو الفهرس الأصغر (0, 3)
+      // الزر الأيسر في الواجهة هو الفهرس الأكبر (2, 5)
+      int currentRow = _focusedIndex ~/ _columnsCount;
+      int prevCol = (_focusedIndex % _columnsCount) - 1;
+      if (prevCol >= 0) {
+        int newIndex = currentRow * _columnsCount + prevCol;
+        if (newIndex >= 0) {
+          _setFocus(newIndex);
+        }
+      }
     }
   }
 
   void _moveFocusUp() {
-    int newIndex = _isSmallScreen ? _focusedIndex - 1 : _focusedIndex - 3;
+    int newIndex =
+        _isSmallScreen ? _focusedIndex - 1 : _focusedIndex - _columnsCount;
     if (newIndex >= 0) {
       _setFocus(newIndex);
     }
   }
 
   void _moveFocusDown() {
-    int newIndex = _isSmallScreen ? _focusedIndex + 1 : _focusedIndex + 3;
-    if (newIndex < 6) {
+    int newIndex =
+        _isSmallScreen ? _focusedIndex + 1 : _focusedIndex + _columnsCount;
+    if (newIndex < _buttons.length) {
       _setFocus(newIndex);
     }
   }
 
   void _setFocus(int index) {
-    setState(() {
-      _focusedIndex = index;
-      FocusScope.of(context).requestFocus(_focusNodes[index]);
-    });
+    if (index != _focusedIndex) {
+      setState(() {
+        _focusedIndex = index;
+        FocusScope.of(context).requestFocus(_focusNodes[index]);
+      });
+    }
   }
 
   void _executeCurrentFocus() {
