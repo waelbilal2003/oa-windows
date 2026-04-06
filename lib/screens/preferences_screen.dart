@@ -326,8 +326,13 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
           title: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ExitButton(
-                onPressed: _handleBackButton,
+              Focus(
+                canRequestFocus: false,
+                skipTraversal: true,
+                descendantsAreFocusable: false,
+                child: ExitButton(
+                  onPressed: _handleBackButton,
+                ),
               ),
               const Text(
                 'التفصيلات',

@@ -306,7 +306,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     });
   }
 
-  // تعديل _addNewRow لتحسين المستمعات
   void _addNewRow() {
     setState(() {
       final newSerialNumber = (rowControllers.length + 1).toString();
@@ -330,14 +329,17 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
     _attachFocusListeners(rowControllers.length - 1);
 
+    // تأخير بسيط لضمان اكتمال بناء الواجهة
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (rowFocusNodes.isNotEmpty) {
         final newRowIndex = rowFocusNodes.length - 1;
-        // التركيز على حقل المادة (index 1)
-        FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][1]);
-        _scrollToField(newRowIndex, 1);
+        // تحديث المؤشرات الحالية
         _currentFocusRow = newRowIndex;
-        _currentFocusCol = 1;
+        _currentFocusCol = 1; // حقل المادة
+        // طلب التركيز على حقل المادة
+        FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][1]);
+        // تمرير الخلية إلى المنطقة المرئية
+        _scrollToField(newRowIndex, 1);
       }
     });
   }
