@@ -371,13 +371,12 @@ class _BoxScreenState extends State<BoxScreen> {
     });
     _attachFocusListeners(rowControllers.length - 1);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _verticalScrollController.jumpTo(0);
-      if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].isNotEmpty) {
-        FocusScope.of(context).requestFocus(rowFocusNodes[0][0]);
-        _currentFocusRow = 0;
-        _currentFocusCol = 0;
-        _adjustScrollPosition(0);
-      }
+      final newRowIndex = rowFocusNodes.length - 1;
+      _currentFocusRow = newRowIndex;
+      _currentFocusCol = 0;
+      FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][0]);
+      _scrollToField(newRowIndex, 0);
+      _adjustScrollPosition(newRowIndex);
     });
   }
 
@@ -932,8 +931,12 @@ class _BoxScreenState extends State<BoxScreen> {
             _addNewRow();
             if (rowControllers.isNotEmpty) {
               final newRowIndex = rowControllers.length - 1;
+              // التركيز على حقل المقبوض (index 0) وليس المدفوع
+              _currentFocusRow = newRowIndex;
+              _currentFocusCol = 0;
               FocusScope.of(context)
-                  .requestFocus(rowFocusNodes[newRowIndex][1]);
+                  .requestFocus(rowFocusNodes[newRowIndex][0]);
+              _scrollToField(newRowIndex, 0);
             }
           }
         },
@@ -998,6 +1001,8 @@ class _BoxScreenState extends State<BoxScreen> {
       if (value.isNotEmpty) {
         _showAccountTypeDialog(rowIndex);
       } else {
+        _currentFocusRow = rowIndex;
+        _currentFocusCol = 1;
         FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][1]);
       }
     } else if (colIndex == 1) {
@@ -1032,14 +1037,18 @@ class _BoxScreenState extends State<BoxScreen> {
           _saveSupplierToIndex(value);
         }
       }
-
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 3;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][3]);
     } else if (colIndex == 3) {
       // ملاحظات
       _addNewRow();
       if (rowControllers.isNotEmpty) {
         final newRowIndex = rowControllers.length - 1;
+        _currentFocusRow = newRowIndex;
+        _currentFocusCol = 0;
         FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][0]);
+        _scrollToField(newRowIndex, 0);
       }
     }
   }

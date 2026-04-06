@@ -458,6 +458,16 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                 },
               ),
             ],
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(20.0),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Text(
+                  'بتاريخ ${widget.selectedDate} لمحل ${widget.storeName}                    ',
+                  style: const TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ),
+            ),
           ),
           body: Directionality(
             textDirection: TextDirection.rtl,

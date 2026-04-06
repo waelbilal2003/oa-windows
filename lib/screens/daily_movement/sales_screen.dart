@@ -620,7 +620,7 @@ class _SalesScreenState extends State<SalesScreen> {
     if (_currentFocusRow == -1 || _currentFocusCol == -1) {
       if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].isNotEmpty) {
         _currentFocusRow = 0;
-        _currentFocusCol = 0;
+        _currentFocusCol = 0; // حقل المادة
         FocusScope.of(context).requestFocus(rowFocusNodes[0][0]);
         _scrollToField(0, 0);
         _adjustScrollPosition(0);
@@ -635,16 +635,17 @@ class _SalesScreenState extends State<SalesScreen> {
     if (newRow < 0) newRow = 0;
     if (newRow >= rowFocusNodes.length) newRow = rowFocusNodes.length - 1;
 
-    // حدود الأعمدة: المادة(0) حتى السعر(5) فقط — لا يمر الإجمالي ولا نقدي/دين
+    // حدود الأعمدة: المادة(0) حتى السعر(5) فقط — لا ننتقل إلى الإجمالي أو نقدي/دين
     const int minCol = 0;
     const int maxCol = 5;
     if (newCol < minCol) newCol = minCol;
     if (newCol > maxCol) newCol = maxCol;
 
-    FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
+    // تحديث المؤشرات الحالية
     _currentFocusRow = newRow;
     _currentFocusCol = newCol;
 
+    FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
     _scrollToField(newRow, newCol);
     _adjustScrollPosition(newRow);
   }
@@ -856,6 +857,8 @@ class _SalesScreenState extends State<SalesScreen> {
         return;
       }
       if (rowFocusNodes[rowIndex].length > 1) {
+        _currentFocusRow = rowIndex;
+        _currentFocusCol = 1;
         FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][1]);
       }
     } else if (colIndex == 2) {
@@ -868,22 +871,20 @@ class _SalesScreenState extends State<SalesScreen> {
         return;
       }
       if (rowFocusNodes[rowIndex].length > 3) {
+        _currentFocusRow = rowIndex;
+        _currentFocusCol = 3;
         FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][3]);
       }
     } else if (colIndex == 5) {
       // السعر -> عرض حوار نقدي/دين
       _showCashOrDebtDialog(rowIndex);
     } else if (colIndex == 7) {
-      // ✅ حقل اسم الزبون (نقدي/دين) - نفس آلية المادة والعبوة
+      // حقل اسم الزبون (نقدي/دين)
       final customerName = value.trim();
-
-      // التحقق: إذا كان هناك اقتراحات، نختار أول اقتراح
       if (_customerSuggestions.isNotEmpty) {
         _selectCustomerSuggestion(_customerSuggestions[0], rowIndex);
         return;
       }
-
-      // إذا لم تكن هناك اقتراحات، نحفظ الاسم المدخل (إذا كان طويلاً بما يكفي)
       if (customerName.isNotEmpty) {
         setState(() {
           customerNames[rowIndex] = customerName;
@@ -893,14 +894,14 @@ class _SalesScreenState extends State<SalesScreen> {
           _saveCustomerToIndex(customerName);
         }
       }
-
-      // إنشاء صف جديد بعد حفظ اسم الزبون
       _addNewRow();
       if (rowControllers.isNotEmpty) {
         final newRowIndex = rowControllers.length - 1;
         Future.delayed(const Duration(milliseconds: 50), () {
           if (mounted && newRowIndex < rowFocusNodes.length) {
             if (rowFocusNodes[newRowIndex].isNotEmpty) {
+              _currentFocusRow = newRowIndex;
+              _currentFocusCol = 0;
               FocusScope.of(context)
                   .requestFocus(rowFocusNodes[newRowIndex][0]);
               _scrollToField(newRowIndex, 0);
@@ -909,6 +910,8 @@ class _SalesScreenState extends State<SalesScreen> {
         });
       }
     } else if (colIndex < 7 && rowFocusNodes[rowIndex].length > colIndex + 1) {
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = colIndex + 1;
       FocusScope.of(context)
           .requestFocus(rowFocusNodes[rowIndex][colIndex + 1]);
     }

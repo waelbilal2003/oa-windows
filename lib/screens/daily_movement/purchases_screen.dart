@@ -200,9 +200,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     if (_currentFocusRow == -1 || _currentFocusCol == -1) {
       if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].isNotEmpty) {
         _currentFocusRow = 0;
-        _currentFocusCol = 0;
-        FocusScope.of(context).requestFocus(rowFocusNodes[0][0]);
-        _scrollToField(0, 0);
+        _currentFocusCol = 1; // ابدأ من حقل المادة
+        FocusScope.of(context).requestFocus(rowFocusNodes[0][1]);
+        _scrollToField(0, 1);
         _adjustScrollPosition(0);
       }
       return;
@@ -215,16 +215,17 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     if (newRow < 0) newRow = 0;
     if (newRow >= rowFocusNodes.length) newRow = rowFocusNodes.length - 1;
 
-    // حدود الأعمدة: المادة(0) حتى السعر(7) فقط — لا يمر الإجمالي ولا نقدي/دين
-    const int minCol = 0;
+    // حدود الأعمدة: المادة(1) حتى السعر(7) — نتخطى الرقم التسلسلي (0) وحقول الإجمالي ونقدي/دين
+    const int minCol = 1;
     const int maxCol = 7;
     if (newCol < minCol) newCol = minCol;
     if (newCol > maxCol) newCol = maxCol;
 
-    FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
+    // تحديث المؤشرات الحالية قبل تغيير التركيز
     _currentFocusRow = newRow;
     _currentFocusCol = newCol;
 
+    FocusScope.of(context).requestFocus(rowFocusNodes[newRow][newCol]);
     _scrollToField(newRow, newCol);
     _adjustScrollPosition(newRow);
   }
@@ -327,12 +328,16 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       emptiesValues.add('');
     });
 
-    _attachFocusListeners(rowControllers.length - 1); // <-- إضافة
+    _attachFocusListeners(rowControllers.length - 1);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (rowFocusNodes.isNotEmpty) {
         final newRowIndex = rowFocusNodes.length - 1;
+        // التركيز على حقل المادة (index 1)
         FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][1]);
+        _scrollToField(newRowIndex, 1);
+        _currentFocusRow = newRowIndex;
+        _currentFocusCol = 1;
       }
     });
   }
@@ -957,6 +962,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         return;
       }
       if (value.trim().length > 1) _saveMaterialToIndex(value);
+      // الانتقال إلى حقل المورد
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 2;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][2]);
     } else if (colIndex == 2) {
       // حقل المورد
@@ -965,9 +973,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         return;
       }
       if (value.trim().length > 1) _saveSupplierToIndex(value);
+      // الانتقال إلى حقل العدد
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 3;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][3]);
     } else if (colIndex == 3) {
       // حقل العدد
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 4;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][4]);
     } else if (colIndex == 4) {
       // حقل العبوة
@@ -976,12 +989,19 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         return;
       }
       if (value.trim().length > 1) _savePackagingToIndex(value);
+      // الانتقال إلى حقل القائم
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 5;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][5]);
     } else if (colIndex == 5) {
       // حقل القائم
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 6;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][6]);
     } else if (colIndex == 6) {
       // حقل الصافي
+      _currentFocusRow = rowIndex;
+      _currentFocusCol = 7;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][7]);
     } else if (colIndex == 7) {
       // حقل السعر - عرض نافذة نقدي/دين
@@ -991,6 +1011,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       _addNewRow();
       if (rowControllers.isNotEmpty) {
         final newRowIndex = rowControllers.length - 1;
+        _currentFocusRow = newRowIndex;
+        _currentFocusCol = 1;
         FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][1]);
       }
     }
