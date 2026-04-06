@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io';
 import 'date_selection_screen.dart';
 import 'help_screen.dart';
 
@@ -171,7 +172,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
         onKey: (event) {
           if (event is RawKeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.escape) {
-            SystemNavigator.pop();
+            exit(0);
           }
         },
         child: Scaffold(
@@ -179,12 +180,33 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // زر المساعدة في أعلى يمين الشاشة
+                // الصف العلوي: زر الخروج (يسار) + زر المساعدة (يمين)
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // زر الخروج (يسار)
+                      ElevatedButton.icon(
+                        onPressed: () => exit(0),
+                        icon: const Icon(Icons.exit_to_app, size: 24),
+                        label: const Text(
+                          'خروج',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red[700],
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 20, vertical: 12),
+                          elevation: 4,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      // زر المساعدة (يمين)
                       ElevatedButton.icon(
                         onPressed: _openHelp,
                         icon: const Icon(Icons.help_outline, size: 28),
@@ -326,7 +348,7 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Text(
-        'للخروج من التطبيق انقر Alt + F4',
+        'يمكنك أيضاً الضغط على Esc للخروج',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 12,
@@ -530,7 +552,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
         onKey: (event) {
           if (event is RawKeyDownEvent &&
               event.logicalKey == LogicalKeyboardKey.escape) {
-            SystemNavigator.pop();
+            exit(0);
           }
         },
         child: Scaffold(
@@ -538,40 +560,65 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // الصف العلوي: زر تغيير كلمة المرور (يسار) + زر المساعدة (يمين)
+                // الصف العلوي: زر الخروج (يسار) + زر تغيير المرور + زر المساعدة (يمين)
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // زر تغيير كلمة المرور (يسار)
-                      TextButton.icon(
-                        onPressed: _showChangePasswordDialog,
-                        icon: Icon(Icons.lock_reset,
-                            color: Colors.green[700], size: 24),
-                        label: Text('تغيير كلمة المرور',
-                            style: TextStyle(
-                                fontSize: 16, color: Colors.green[700])),
-                      ),
-                      // زر المساعدة (يمين)
+                      // زر الخروج (يسار)
                       ElevatedButton.icon(
-                        onPressed: _openHelp,
-                        icon: const Icon(Icons.help_outline, size: 28),
+                        onPressed: () => exit(0),
+                        icon: const Icon(Icons.exit_to_app, size: 24),
                         label: const Text(
-                          'مساعدة',
+                          'خروج',
                           style: TextStyle(
                               fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber[700],
+                          backgroundColor: Colors.red[700],
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                               horizontal: 20, vertical: 12),
                           elevation: 4,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
+                            borderRadius: BorderRadius.circular(10),
                           ),
                         ),
+                      ),
+                      // زر تغيير كلمة المرور (وسط) + زر المساعدة (يمين)
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _showChangePasswordDialog,
+                            icon: Icon(Icons.lock_reset,
+                                color: Colors.green[700], size: 24),
+                            label: Text('تغيير كلمة المرور',
+                                style: TextStyle(
+                                    fontSize: 16, color: Colors.green[700])),
+                          ),
+                          const SizedBox(width: 8),
+                          // زر المساعدة (يمين)
+                          ElevatedButton.icon(
+                            onPressed: _openHelp,
+                            icon: const Icon(Icons.help_outline, size: 28),
+                            label: const Text(
+                              'مساعدة',
+                              style: TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.amber[700],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 20, vertical: 12),
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -673,7 +720,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
     return Padding(
       padding: const EdgeInsets.only(top: 16),
       child: Text(
-        'للخروج من التطبيق انقر Alt + F4',
+        'يمكنك أيضاً الضغط على Esc للخروج',
         textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 12,

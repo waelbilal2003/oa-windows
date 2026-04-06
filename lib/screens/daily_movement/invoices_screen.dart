@@ -13,8 +13,6 @@ import '../../widgets/date_range_filter.dart';
 import '../../widgets/exit_button.dart';
 import 'package:flutter/services.dart';
 
-final ScrollController _scrollController = ScrollController();
-
 class InvoicesScreen extends StatefulWidget {
   final String selectedDate;
   final String storeName;
@@ -37,6 +35,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   late Future<List<InvoiceItem>> _invoiceDataFuture;
   double? _customerBalance;
   final FocusNode _keyboardFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
 
   DateTime? _filterFrom;
   DateTime? _filterTo;
@@ -576,6 +575,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                       ),
                       Expanded(
                         child: ListView.builder(
+                          controller: _scrollController,
                           itemCount: displayItems.length + 1,
                           itemBuilder: (context, index) {
                             if (index == displayItems.length) {

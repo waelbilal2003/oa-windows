@@ -48,6 +48,8 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
   Map<String, FocusNode> _supplierMobileFocusNodes = {};
 
   final ScrollController _scrollController = ScrollController();
+  final ScrollController _customersScrollController = ScrollController();
+  final ScrollController _suppliersScrollController = ScrollController();
   final FocusNode _keyboardFocusNode = FocusNode();
   void _handleBackButton() {
     Navigator.of(context).pop();
@@ -78,6 +80,8 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
     _supplierMobileControllers.values.forEach((c) => c.dispose());
     _supplierMobileFocusNodes.values.forEach((n) => n.dispose());
     _scrollController.dispose();
+    _customersScrollController.dispose();
+    _suppliersScrollController.dispose();
 
     _keyboardFocusNode.dispose();
     super.dispose();
@@ -343,6 +347,19 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
     }
   }
 
+  /// يحسب موقع الصف ويمرر القائمة لإظهاره — rowHeight تقريبي
+  void _scrollToIndex(ScrollController sc, int index, int total) {
+    if (!sc.hasClients) return;
+    const double rowHeight = 48.0;
+    final double target =
+        (index * rowHeight).clamp(0.0, sc.position.maxScrollExtent);
+    sc.animateTo(
+      target,
+      duration: const Duration(milliseconds: 80),
+      curve: Curves.easeInOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -362,36 +379,136 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
         focusNode: _keyboardFocusNode,
         autofocus: true,
         onKeyEvent: (node, event) {
-          final anyTextFieldFocused = _addCustomerFocusNode.hasFocus ||
-              _addSupplierFocusNode.hasFocus ||
-              _customerBalanceFocusNodes.values.any((n) => n.hasFocus) ||
-              _customerMobileFocusNodes.values.any((n) => n.hasFocus) ||
-              _supplierBalanceFocusNodes.values.any((n) => n.hasFocus) ||
-              _supplierMobileFocusNodes.values.any((n) => n.hasFocus);
-          if (anyTextFieldFocused) return KeyEventResult.ignored;
-          if (event is KeyDownEvent || event is KeyRepeatEvent) {
-            if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-              if (_scrollController.hasClients) {
-                _scrollController.animateTo(
-                  (_scrollController.offset + 150)
-                      .clamp(0, _scrollController.position.maxScrollExtent),
-                  duration: const Duration(milliseconds: 80),
-                  curve: Curves.easeInOut,
-                );
-              }
-              return KeyEventResult.handled;
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-              if (_scrollController.hasClients) {
-                _scrollController.animateTo(
-                  (_scrollController.offset - 150)
-                      .clamp(0, _scrollController.position.maxScrollExtent),
-                  duration: const Duration(milliseconds: 80),
-                  curve: Curves.easeInOut,
-                );
-              }
-              return KeyEventResult.handled;
+          if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+            return KeyEventResult.ignored;
+          }
+
+          final key = event.logicalKey;
+
+          // ── تحديد الـ ScrollController النشط ──
+          ScrollController activeScroll = _scrollController;
+          if (_activeTab == 1) activeScroll = _customersScrollController;
+          if (_activeTab == 2) activeScroll = _suppliersScrollController;
+
+          // ── الحصول على قوائم الحقول المرتبة للتبويب النشط ──
+          List<String> names = [];
+          Map<String, FocusNode> balanceFocus = {};
+          Map<String, FocusNode> mobileFocus = {};
+
+          if (_activeTab == 1) {
+            names = (_customers.entries.toList()
+                  ..sort((a, b) => a.key.compareTo(b.key)))
+                .map((e) => e.value.name)
+                .toList();
+            balanceFocus = _customerBalanceFocusNodes;
+            mobileFocus = _customerMobileFocusNodes;
+          } else if (_activeTab == 2) {
+            names = (_suppliers.entries.toList()
+                  ..sort((a, b) => a.key.compareTo(b.key)))
+                .map((e) => e.value.name)
+                .toList();
+            balanceFocus = _supplierBalanceFocusNodes;
+            mobileFocus = _supplierMobileFocusNodes;
+          }
+
+          // ── تحقق هل أحد حقول الجدول النشط يملك الفوكس ──
+          String? focusedName;
+          bool isOnBalance = false;
+          for (final name in names) {
+            if (balanceFocus[name]?.hasFocus == true) {
+              focusedName = name;
+              isOnBalance = true;
+              break;
+            }
+            if (mobileFocus[name]?.hasFocus == true) {
+              focusedName = name;
+              isOnBalance = false;
+              break;
             }
           }
+
+          // ── إذا كان المؤشر في أحد حقول الجدول ──
+          if (focusedName != null && names.isNotEmpty) {
+            final currentIndex = names.indexOf(focusedName);
+
+            if (key == LogicalKeyboardKey.arrowDown) {
+              // انتقل للصف التالي — نفس العمود
+              if (currentIndex < names.length - 1) {
+                final nextName = names[currentIndex + 1];
+                final nextFocus = isOnBalance
+                    ? balanceFocus[nextName]
+                    : mobileFocus[nextName];
+                FocusScope.of(context).requestFocus(nextFocus);
+                // تمرير القائمة لتُظهر العنصر
+                _scrollToIndex(activeScroll, currentIndex + 1, names.length);
+              }
+              // عند الحد الأسفل: لا شيء — يبقى المؤشر مكانه
+              return KeyEventResult.handled;
+            }
+
+            if (key == LogicalKeyboardKey.arrowUp) {
+              // انتقل للصف السابق — نفس العمود
+              if (currentIndex > 0) {
+                final prevName = names[currentIndex - 1];
+                final prevFocus = isOnBalance
+                    ? balanceFocus[prevName]
+                    : mobileFocus[prevName];
+                FocusScope.of(context).requestFocus(prevFocus);
+                _scrollToIndex(activeScroll, currentIndex - 1, names.length);
+              }
+              // عند الحد الأعلى: لا شيء — يبقى المؤشر مكانه
+              return KeyEventResult.handled;
+            }
+
+            if (key == LogicalKeyboardKey.arrowRight) {
+              // انتقل من موبايل إلى رصيد (يمين = رصيد في RTL)
+              if (!isOnBalance) {
+                FocusScope.of(context).requestFocus(balanceFocus[focusedName]);
+              }
+              // إذا كان في رصيد بالفعل: يبقى مكانه
+              return KeyEventResult.handled;
+            }
+
+            if (key == LogicalKeyboardKey.arrowLeft) {
+              // انتقل من رصيد إلى موبايل (يسار = موبايل في RTL)
+              if (isOnBalance) {
+                FocusScope.of(context).requestFocus(mobileFocus[focusedName]);
+              }
+              // إذا كان في موبايل بالفعل: يبقى مكانه
+              return KeyEventResult.handled;
+            }
+
+            return KeyEventResult.ignored;
+          }
+
+          // ── إذا لم يكن المؤشر في أي حقل: تمرير بالأسهم ──
+          final anyOtherFocused =
+              _addCustomerFocusNode.hasFocus || _addSupplierFocusNode.hasFocus;
+          if (anyOtherFocused) return KeyEventResult.ignored;
+
+          if (key == LogicalKeyboardKey.arrowDown) {
+            if (activeScroll.hasClients) {
+              activeScroll.animateTo(
+                (activeScroll.offset + 150)
+                    .clamp(0, activeScroll.position.maxScrollExtent),
+                duration: const Duration(milliseconds: 80),
+                curve: Curves.easeInOut,
+              );
+            }
+            return KeyEventResult.handled;
+          }
+          if (key == LogicalKeyboardKey.arrowUp) {
+            if (activeScroll.hasClients) {
+              activeScroll.animateTo(
+                (activeScroll.offset - 150)
+                    .clamp(0, activeScroll.position.maxScrollExtent),
+                duration: const Duration(milliseconds: 80),
+                curve: Curves.easeInOut,
+              );
+            }
+            return KeyEventResult.handled;
+          }
+
           return KeyEventResult.ignored;
         },
         child: Scaffold(
@@ -708,6 +825,7 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
           child: list.isEmpty
               ? const Center(child: Text('لا يوجد زبائن مسجلين.'))
               : ListView.builder(
+                  controller: _customersScrollController,
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final customer = list[index].value;
@@ -881,6 +999,7 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
           child: list.isEmpty
               ? const Center(child: Text('لا يوجد موردين مسجلين.'))
               : ListView.builder(
+                  controller: _suppliersScrollController,
                   itemCount: list.length,
                   itemBuilder: (context, index) {
                     final supplier = list[index].value;
@@ -968,20 +1087,37 @@ class _OpeningBalancesScreenState extends State<OpeningBalancesScreen> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 2.0),
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 16),
-        keyboardType: isNumeric
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : TextInputType.text,
-        inputFormatters: inputFormatters,
-        onSubmitted: onSubmitted,
-        decoration: const InputDecoration(
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(vertical: 2),
-          border: UnderlineInputBorder(),
+      child: Focus(
+        // نعترض أزرار الأسهم الأربعة ونرفعها للـ Focus الأب
+        // حتى لا يستهلكها الـ TextField داخلياً
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent || event is KeyRepeatEvent) {
+            final k = event.logicalKey;
+            if (k == LogicalKeyboardKey.arrowDown ||
+                k == LogicalKeyboardKey.arrowUp ||
+                k == LogicalKeyboardKey.arrowLeft ||
+                k == LogicalKeyboardKey.arrowRight) {
+              // نمرر الحدث للأب ليعالجه onKeyEvent الرئيسي
+              return KeyEventResult.ignored;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: TextField(
+          controller: controller,
+          focusNode: focusNode,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16),
+          keyboardType: isNumeric
+              ? const TextInputType.numberWithOptions(decimal: true)
+              : TextInputType.text,
+          inputFormatters: inputFormatters,
+          onSubmitted: onSubmitted,
+          decoration: const InputDecoration(
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(vertical: 2),
+            border: UnderlineInputBorder(),
+          ),
         ),
       ),
     );

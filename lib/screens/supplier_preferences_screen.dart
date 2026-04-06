@@ -493,6 +493,7 @@ class _SupplierPreferencesScreenState extends State<SupplierPreferencesScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

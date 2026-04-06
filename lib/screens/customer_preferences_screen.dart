@@ -491,6 +491,7 @@ class _CustomerPreferencesScreenState extends State<CustomerPreferencesScreen> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

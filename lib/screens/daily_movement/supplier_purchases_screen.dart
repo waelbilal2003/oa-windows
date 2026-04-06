@@ -531,6 +531,7 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                 }
 
                 return SingleChildScrollView(
+                  controller: _scrollController,
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Column(
