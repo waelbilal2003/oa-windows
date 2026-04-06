@@ -183,6 +183,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   }
 
   void _attachFocusListeners(int rowIndex) {
+    if (rowIndex >= rowFocusNodes.length) return;
+
     for (int col = 0; col < rowFocusNodes[rowIndex].length; col++) {
       rowFocusNodes[rowIndex][col].removeListener(() {});
       rowFocusNodes[rowIndex][col].addListener(() {
@@ -200,7 +202,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     if (_currentFocusRow == -1 || _currentFocusCol == -1) {
       if (rowFocusNodes.isNotEmpty && rowFocusNodes[0].isNotEmpty) {
         _currentFocusRow = 0;
-        _currentFocusCol = 1; // ابدأ من حقل المادة
+        _currentFocusCol = 1; // ابدأ من حقل المادة (وليس الرقم التسلسلي)
         FocusScope.of(context).requestFocus(rowFocusNodes[0][1]);
         _scrollToField(0, 1);
         _adjustScrollPosition(0);
@@ -331,15 +333,16 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
     // تأخير بسيط لضمان اكتمال بناء الواجهة
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (rowFocusNodes.isNotEmpty) {
+      if (mounted && rowFocusNodes.isNotEmpty) {
         final newRowIndex = rowFocusNodes.length - 1;
-        // تحديث المؤشرات الحالية
+        // تحديث المؤشرات الحالية - التركيز على حقل المادة (index 1)
         _currentFocusRow = newRowIndex;
         _currentFocusCol = 1; // حقل المادة
         // طلب التركيز على حقل المادة
         FocusScope.of(context).requestFocus(rowFocusNodes[newRowIndex][1]);
         // تمرير الخلية إلى المنطقة المرئية
         _scrollToField(newRowIndex, 1);
+        _adjustScrollPosition(newRowIndex);
       }
     });
   }
@@ -1141,13 +1144,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         _addNewRow();
-                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                          if (rowFocusNodes.isNotEmpty) {
-                            final newRowIndex = rowFocusNodes.length - 1;
-                            FocusScope.of(context)
-                                .requestFocus(rowFocusNodes[newRowIndex][0]);
-                          }
-                        });
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color.fromARGB(255, 14, 82, 184),
@@ -1330,13 +1326,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               final focusedNode = FocusScope.of(context).focusedChild;
               if (focusedNode == null || focusedNode == _addButtonFocusNode) {
                 _addNewRow();
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  if (rowFocusNodes.isNotEmpty) {
-                    final newRowIndex = rowFocusNodes.length - 1;
-                    FocusScope.of(context)
-                        .requestFocus(rowFocusNodes[newRowIndex][1]);
-                  }
-                });
               }
             } else if (event.logicalKey == LogicalKeyboardKey.arrowRight) {
               _moveFocus(0, -1);

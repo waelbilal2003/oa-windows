@@ -10,28 +10,6 @@ import 'account_summary_screen.dart';
 import 'backup_screen_state.dart';
 import '../widgets/exit_button.dart';
 
-// ==================== Intents for Keyboard Navigation ====================
-class MoveFocusUpIntent extends Intent {
-  const MoveFocusUpIntent();
-}
-
-class MoveFocusDownIntent extends Intent {
-  const MoveFocusDownIntent();
-}
-
-class MoveFocusLeftIntent extends Intent {
-  const MoveFocusLeftIntent();
-}
-
-class MoveFocusRightIntent extends Intent {
-  const MoveFocusRightIntent();
-}
-
-class ActivateCurrentIntent extends Intent {
-  const ActivateCurrentIntent();
-}
-
-// ==================== Main Screen ====================
 class PreferencesScreen extends StatefulWidget {
   final String selectedDate;
   const PreferencesScreen({super.key, required this.selectedDate});
@@ -50,8 +28,10 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   bool _isSmallScreen = false;
   final FocusNode _globalFocusNode = FocusNode();
 
-  // عدد الأعمدة في وضع الشاشة الكبيرة
-  final int _columnsCount = 3;
+  // ترتيب الأزرار في الصف الأول (3 أزرار)
+  final List<int> _topRowIndices = [0, 1, 2];
+  // ترتيب الأزرار في الصف الثاني (3 أزرار)
+  final List<int> _bottomRowIndices = [3, 4, 5];
 
   final List<Map<String, dynamic>> _buttons = [
     {
@@ -80,8 +60,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     _focusNodes = List.generate(6, (_) => FocusNode());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        // بدء المؤشر على زر تفصيلات الحساب (index 0)
-        _setFocus(0);
+        _focusNodes[0].requestFocus();
+        _focusedIndex = 0;
+        setState(() {});
       }
     });
   }
@@ -121,72 +102,115 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   }
 
   void _moveFocusLeft() {
+    int newIndex = _focusedIndex;
+
     if (_isSmallScreen) {
-      // في الشاشة الصغيرة: تنقل عمودي
-      int newIndex = _focusedIndex - 1;
-      if (newIndex >= 0) {
-        _setFocus(newIndex);
+      return;
+    }
+
+    // الصف العلوي
+    if (_topRowIndices.contains(_focusedIndex)) {
+      int currentPosition = _topRowIndices.indexOf(_focusedIndex);
+      if (currentPosition < _topRowIndices.length - 1) {
+        newIndex = _topRowIndices[currentPosition + 1];
+      } else {
+        return;
       }
-    } else {
-      // في الشاشة الكبيرة: تنقل أفقي - لأن العربية من اليمين لليسار
-      // الزر الأيمن في الواجهة هو الفهرس الأصغر (0, 3)
-      // الزر الأيسر في الواجهة هو الفهرس الأكبر (2, 5)
-      int currentRow = _focusedIndex ~/ _columnsCount;
-      int nextCol = (_focusedIndex % _columnsCount) + 1;
-      if (nextCol < _columnsCount) {
-        int newIndex = currentRow * _columnsCount + nextCol;
-        if (newIndex < _buttons.length) {
-          _setFocus(newIndex);
-        }
+    }
+    // الصف السفلي
+    else if (_bottomRowIndices.contains(_focusedIndex)) {
+      int currentPosition = _bottomRowIndices.indexOf(_focusedIndex);
+      if (currentPosition < _bottomRowIndices.length - 1) {
+        newIndex = _bottomRowIndices[currentPosition + 1];
+      } else {
+        return;
       }
+    }
+
+    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
+      _setFocus(newIndex);
     }
   }
 
   void _moveFocusRight() {
+    int newIndex = _focusedIndex;
+
     if (_isSmallScreen) {
-      // في الشاشة الصغيرة: تنقل عمودي
-      int newIndex = _focusedIndex + 1;
-      if (newIndex < _buttons.length) {
-        _setFocus(newIndex);
+      return;
+    }
+
+    // الصف العلوي
+    if (_topRowIndices.contains(_focusedIndex)) {
+      int currentPosition = _topRowIndices.indexOf(_focusedIndex);
+      if (currentPosition > 0) {
+        newIndex = _topRowIndices[currentPosition - 1];
+      } else {
+        return;
       }
-    } else {
-      // في الشاشة الكبيرة: تنقل أفقي - لأن العربية من اليمين لليسار
-      // الزر الأيمن في الواجهة هو الفهرس الأصغر (0, 3)
-      // الزر الأيسر في الواجهة هو الفهرس الأكبر (2, 5)
-      int currentRow = _focusedIndex ~/ _columnsCount;
-      int prevCol = (_focusedIndex % _columnsCount) - 1;
-      if (prevCol >= 0) {
-        int newIndex = currentRow * _columnsCount + prevCol;
-        if (newIndex >= 0) {
-          _setFocus(newIndex);
-        }
+    }
+    // الصف السفلي
+    else if (_bottomRowIndices.contains(_focusedIndex)) {
+      int currentPosition = _bottomRowIndices.indexOf(_focusedIndex);
+      if (currentPosition > 0) {
+        newIndex = _bottomRowIndices[currentPosition - 1];
+      } else {
+        return;
       }
+    }
+
+    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
+      _setFocus(newIndex);
     }
   }
 
   void _moveFocusUp() {
-    int newIndex =
-        _isSmallScreen ? _focusedIndex - 1 : _focusedIndex - _columnsCount;
-    if (newIndex >= 0) {
+    int newIndex = _focusedIndex;
+
+    if (_isSmallScreen) {
+      newIndex = _focusedIndex - 1;
+      if (newIndex < 0) return;
+    } else {
+      // من الصف السفلي إلى الصف العلوي
+      if (_bottomRowIndices.contains(_focusedIndex)) {
+        int currentPosition = _bottomRowIndices.indexOf(_focusedIndex);
+        newIndex = _topRowIndices[currentPosition];
+      } else {
+        return;
+      }
+    }
+
+    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
       _setFocus(newIndex);
     }
   }
 
   void _moveFocusDown() {
-    int newIndex =
-        _isSmallScreen ? _focusedIndex + 1 : _focusedIndex + _columnsCount;
-    if (newIndex < _buttons.length) {
+    int newIndex = _focusedIndex;
+
+    if (_isSmallScreen) {
+      newIndex = _focusedIndex + 1;
+      if (newIndex >= 6) return;
+    } else {
+      // من الصف العلوي إلى الصف السفلي
+      if (_topRowIndices.contains(_focusedIndex)) {
+        int currentPosition = _topRowIndices.indexOf(_focusedIndex);
+        newIndex = _bottomRowIndices[currentPosition];
+      } else {
+        return;
+      }
+    }
+
+    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
       _setFocus(newIndex);
     }
   }
 
   void _setFocus(int index) {
-    if (index != _focusedIndex) {
-      setState(() {
-        _focusedIndex = index;
-        FocusScope.of(context).requestFocus(_focusNodes[index]);
-      });
-    }
+    if (!mounted) return;
+    setState(() {
+      _focusedIndex = index;
+      _focusNodes[index].requestFocus();
+    });
   }
 
   void _executeCurrentFocus() {
@@ -269,6 +293,8 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   }) {
     return Focus(
       focusNode: _focusNodes[index],
+      canRequestFocus: true,
+      descendantsAreFocusable: false,
       child: Builder(
         builder: (context) {
           final hasFocus = _focusNodes[index].hasFocus;
@@ -367,172 +393,142 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Shortcuts(
-      shortcuts: <LogicalKeySet, Intent>{
-        LogicalKeySet(LogicalKeyboardKey.arrowUp): const MoveFocusUpIntent(),
-        LogicalKeySet(LogicalKeyboardKey.arrowDown):
-            const MoveFocusDownIntent(),
-        LogicalKeySet(LogicalKeyboardKey.arrowLeft):
-            const MoveFocusLeftIntent(),
-        LogicalKeySet(LogicalKeyboardKey.arrowRight):
-            const MoveFocusRightIntent(),
-        LogicalKeySet(LogicalKeyboardKey.enter): const ActivateCurrentIntent(),
-        LogicalKeySet(LogicalKeyboardKey.space): const ActivateCurrentIntent(),
-      },
-      child: FocusTraversalGroup(
-        policy: WidgetOrderTraversalPolicy(),
-        child: Focus(
-          autofocus: true,
-          onKey: (node, event) {
-            if (event is RawKeyDownEvent) {
-              _handleKeyEvent(event);
-              return KeyEventResult.handled;
-            }
-            return KeyEventResult.ignored;
-          },
-          child: RawKeyboardListener(
-            focusNode: _globalFocusNode,
-            autofocus: true,
-            onKey: _handleKeyEvent,
-            child: Scaffold(
-              appBar: AppBar(
-                automaticallyImplyLeading: false,
-                titleSpacing: 0,
-                toolbarHeight: 70,
-                backgroundColor: Colors.blueGrey[600],
-                foregroundColor: Colors.white,
-                title: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Focus(
-                      canRequestFocus: false,
-                      skipTraversal: true,
-                      descendantsAreFocusable: false,
-                      child: ExitButton(
-                        onPressed: _handleBackButton,
-                      ),
-                    ),
-                    const Text(
-                      'التفصيلات',
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
-                    ),
-                    const SizedBox(width: 140),
-                  ],
+    return RawKeyboardListener(
+      focusNode: _globalFocusNode,
+      autofocus: true,
+      onKey: _handleKeyEvent,
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          titleSpacing: 0,
+          toolbarHeight: 70,
+          backgroundColor: Colors.blueGrey[600],
+          foregroundColor: Colors.white,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Focus(
+                canRequestFocus: false,
+                skipTraversal: true,
+                descendantsAreFocusable: false,
+                child: ExitButton(
+                  onPressed: _handleBackButton,
                 ),
-                centerTitle: true,
               ),
-              body: Directionality(
-                textDirection: TextDirection.rtl,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    _isSmallScreen = constraints.maxWidth < 500;
+              const Text(
+                'التفصيلات',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22),
+              ),
+              const SizedBox(width: 140),
+            ],
+          ),
+          centerTitle: true,
+        ),
+        body: Directionality(
+          textDirection: TextDirection.rtl,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              _isSmallScreen = constraints.maxWidth < 500;
 
-                    if (_isSmallScreen) {
-                      return Center(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+              if (_isSmallScreen) {
+                return Center(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        for (int i = 0; i < _buttons.length; i++)
+                          Column(
                             children: [
-                              for (int i = 0; i < _buttons.length; i++)
-                                Column(
-                                  children: [
-                                    _buildMenuButton(
-                                      icon: _buttons[i]['icon'] as IconData,
-                                      label: _buttons[i]['label'] as String,
-                                      color: (_buttons[i]['color']
-                                              is MaterialColor)
-                                          ? (_buttons[i]['color']
-                                              as MaterialColor)[700]!
-                                          : _buttons[i]['color'] as Color,
-                                      index: i,
-                                    ),
-                                    if (i < _buttons.length - 1)
-                                      const SizedBox(height: 16),
-                                  ],
-                                ),
+                              _buildMenuButton(
+                                icon: _buttons[i]['icon'] as IconData,
+                                label: _buttons[i]['label'] as String,
+                                color: (_buttons[i]['color'] is MaterialColor)
+                                    ? (_buttons[i]['color']
+                                        as MaterialColor)[700]!
+                                    : _buttons[i]['color'] as Color,
+                                index: i,
+                              ),
+                              if (i < _buttons.length - 1)
+                                const SizedBox(height: 16),
                             ],
                           ),
+                      ],
+                    ),
+                  ),
+                );
+              } else {
+                return Center(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildMenuButton(
+                              icon: _buttons[0]['icon'] as IconData,
+                              label: _buttons[0]['label'] as String,
+                              color:
+                                  (_buttons[0]['color'] as MaterialColor)[700]!,
+                              index: 0,
+                            ),
+                            const SizedBox(width: 80),
+                            _buildMenuButton(
+                              icon: _buttons[1]['icon'] as IconData,
+                              label: _buttons[1]['label'] as String,
+                              color:
+                                  (_buttons[1]['color'] as MaterialColor)[600]!,
+                              index: 1,
+                            ),
+                            const SizedBox(width: 80),
+                            _buildMenuButton(
+                              icon: _buttons[2]['icon'] as IconData,
+                              label: _buttons[2]['label'] as String,
+                              color:
+                                  (_buttons[2]['color'] as MaterialColor)[600]!,
+                              index: 2,
+                            ),
+                          ],
                         ),
-                      );
-                    } else {
-                      return Center(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildMenuButton(
-                                    icon: _buttons[0]['icon'] as IconData,
-                                    label: _buttons[0]['label'] as String,
-                                    color: (_buttons[0]['color']
-                                        as MaterialColor)[700]!,
-                                    index: 0,
-                                  ),
-                                  const SizedBox(width: 80),
-                                  _buildMenuButton(
-                                    icon: _buttons[1]['icon'] as IconData,
-                                    label: _buttons[1]['label'] as String,
-                                    color: (_buttons[1]['color']
-                                        as MaterialColor)[600]!,
-                                    index: 1,
-                                  ),
-                                  const SizedBox(width: 80),
-                                  _buildMenuButton(
-                                    icon: _buttons[2]['icon'] as IconData,
-                                    label: _buttons[2]['label'] as String,
-                                    color: (_buttons[2]['color']
-                                        as MaterialColor)[600]!,
-                                    index: 2,
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 20),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildMenuButton(
-                                    icon: _buttons[3]['icon'] as IconData,
-                                    label: _buttons[3]['label'] as String,
-                                    color: (_buttons[3]['color']
-                                        as MaterialColor)[700]!,
-                                    index: 3,
-                                  ),
-                                  const SizedBox(width: 80),
-                                  _buildMenuButton(
-                                    icon: _buttons[4]['icon'] as IconData,
-                                    label: _buttons[4]['label'] as String,
-                                    color: const Color(0xFF0F4C5C),
-                                    index: 4,
-                                  ),
-                                  const SizedBox(width: 80),
-                                  _buildMenuButton(
-                                    icon: _buttons[5]['icon'] as IconData,
-                                    label: _buttons[5]['label'] as String,
-                                    color: Colors.grey[700]!,
-                                    index: 5,
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildMenuButton(
+                              icon: _buttons[3]['icon'] as IconData,
+                              label: _buttons[3]['label'] as String,
+                              color:
+                                  (_buttons[3]['color'] as MaterialColor)[700]!,
+                              index: 3,
+                            ),
+                            const SizedBox(width: 80),
+                            _buildMenuButton(
+                              icon: _buttons[4]['icon'] as IconData,
+                              label: _buttons[4]['label'] as String,
+                              color: const Color(0xFF0F4C5C),
+                              index: 4,
+                            ),
+                            const SizedBox(width: 80),
+                            _buildMenuButton(
+                              icon: _buttons[5]['icon'] as IconData,
+                              label: _buttons[5]['label'] as String,
+                              color: Colors.grey[700]!,
+                              index: 5,
+                            ),
+                          ],
                         ),
-                      );
-                    }
-                  },
-                ),
-              ),
-            ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
           ),
         ),
       ),
     );
   }
 }
-
-// ==================== باقي الأصناف كما هي ====================
 
 // ── بطاقة رصيد زبون ──
 class _CustomerBalanceCard extends StatefulWidget {
