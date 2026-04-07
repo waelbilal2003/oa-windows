@@ -675,7 +675,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'المجموع ${grandTotal.toStringAsFixed(2)}دولار فقط لا غير  الرصيد : $balanceText.',
+                          'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceText.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
