@@ -276,7 +276,7 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                     ),
                     child: pw.Center(
                       child: pw.Text(
-                        'المجموع ${totalGrand.toStringAsFixed(2)} ليرة سورية فقط لا غير  الرصيد : $balanceTextPdf.',
+                        'المجموع ${totalGrand.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceTextPdf.',
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
                           color: PdfColors.white,
@@ -648,7 +648,7 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            'المجموع ${totalGrand.toStringAsFixed(2)} ليرة سورية فقط لا غير  الرصيد : ${_supplierBalance != null ? _supplierBalance!.toStringAsFixed(2) : '---'}.',
+                            'المجموع ${totalGrand.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : ${_supplierBalance != null ? _supplierBalance!.toStringAsFixed(2) : '---'}.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.white,
