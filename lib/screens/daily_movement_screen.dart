@@ -45,7 +45,8 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
     _focusNodes = List.generate(6, (_) => FocusNode());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _focusNodes[0].requestFocus();
+        // ✅ التركيز يبقى على _globalFocusNode دائماً — المؤشر يبدأ على المبيعات
+        _globalFocusNode.requestFocus();
         _focusedIndex = 0;
         setState(() {});
       }
@@ -208,8 +209,9 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
     if (!mounted) return;
     setState(() {
       _focusedIndex = index;
-      _focusNodes[index].requestFocus();
     });
+    // ✅ التركيز يعود دائماً لـ _globalFocusNode لضمان استمرار استقبال أحداث لوحة المفاتيح
+    _globalFocusNode.requestFocus();
   }
 
   void _executeCurrentFocus() {
@@ -285,102 +287,88 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
     required int index,
     required VoidCallback onTap,
   }) {
-    return Focus(
-      focusNode: _focusNodes[index],
-      canRequestFocus: true,
-      descendantsAreFocusable: false,
-      child: Builder(
-        builder: (context) {
-          final hasFocus = _focusNodes[index].hasFocus;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            transform: Matrix4.identity()..scale(hasFocus ? 1.05 : 1.0),
-            child: Material(
-              elevation: hasFocus ? 20 : 8,
+    // ✅ hasFocus يعتمد على _focusedIndex وليس على focusNode.hasFocus
+    final hasFocus = _focusedIndex == index;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      transform: Matrix4.identity()..scale(hasFocus ? 1.05 : 1.0),
+      child: Material(
+        elevation: hasFocus ? 20 : 8,
+        borderRadius: BorderRadius.circular(20),
+        shadowColor: hasFocus ? Colors.amber : color.withOpacity(0.5),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 350,
+            height: 300,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: hasFocus
+                    ? [Colors.amber.shade600, Colors.orange.shade800]
+                    : [color, color.withOpacity(0.7)],
+              ),
               borderRadius: BorderRadius.circular(20),
-              shadowColor: hasFocus ? Colors.amber : color.withOpacity(0.5),
-              child: InkWell(
-                onTap: () {
-                  _setFocus(index);
-                  _executeCurrentFocus();
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  width: 350,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: hasFocus
-                          ? [Colors.amber.shade600, Colors.orange.shade800]
-                          : [color, color.withOpacity(0.7)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: hasFocus
-                        ? Border.all(color: Colors.white, width: 4)
-                        : Border.all(color: Colors.transparent, width: 4),
-                    boxShadow: hasFocus
-                        ? [
-                            BoxShadow(
-                              color: Colors.amber.withOpacity(0.6),
-                              blurRadius: 25,
-                              spreadRadius: 3,
-                              offset: const Offset(0, 0),
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: color.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        icon,
-                        size: hasFocus ? 52 : 42,
-                        color: Colors.white,
+              border: hasFocus
+                  ? Border.all(color: Colors.white, width: 4)
+                  : Border.all(color: Colors.transparent, width: 4),
+              boxShadow: hasFocus
+                  ? [
+                      BoxShadow(
+                        color: Colors.amber.withOpacity(0.6),
+                        blurRadius: 25,
+                        spreadRadius: 3,
+                        offset: const Offset(0, 0),
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: hasFocus ? 18 : 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                          shadows: hasFocus
-                              ? [
-                                  const Shadow(
-                                      color: Colors.black26, blurRadius: 4)
-                                ]
-                              : null,
-                        ),
+                    ]
+                  : [
+                      BoxShadow(
+                        color: color.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
-                      if (hasFocus)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Container(
-                            width: 40,
-                            height: 3,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
                     ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  icon,
+                  size: hasFocus ? 52 : 42,
+                  color: Colors.white,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: hasFocus ? 18 : 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                    shadows: hasFocus
+                        ? [const Shadow(color: Colors.black26, blurRadius: 4)]
+                        : null,
                   ),
                 ),
-              ),
+                if (hasFocus)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Container(
+                      width: 40,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

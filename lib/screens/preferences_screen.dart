@@ -28,11 +28,6 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   bool _isSmallScreen = false;
   final FocusNode _globalFocusNode = FocusNode();
 
-  // ترتيب الأزرار في الصف الأول (3 أزرار)
-  final List<int> _topRowIndices = [0, 1, 2];
-  // ترتيب الأزرار في الصف الثاني (3 أزرار)
-  final List<int> _bottomRowIndices = [3, 4, 5];
-
   final List<Map<String, dynamic>> _buttons = [
     {
       'icon': Icons.account_balance,
@@ -102,106 +97,88 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
   }
 
   void _moveFocusLeft() {
-    int newIndex = _focusedIndex;
+    if (_isSmallScreen) return;
 
-    if (_isSmallScreen) {
+    // الصف العلوي: 0=تفصيلات الحساب، 1=تفصيلات الزبائن، 2=تفصيلات الموردين
+    // الصف السفلي: 3=أرصدة البداية، 4=النسخ الاحتياطي، 5=إعدادات أخرى
+    // يسار = زيادة index داخل الصف (RTL)
+    if (_focusedIndex == 0) {
+      _setFocus(1);
       return;
     }
-
-    // الصف العلوي
-    if (_topRowIndices.contains(_focusedIndex)) {
-      int currentPosition = _topRowIndices.indexOf(_focusedIndex);
-      if (currentPosition < _topRowIndices.length - 1) {
-        newIndex = _topRowIndices[currentPosition + 1];
-      } else {
-        return;
-      }
+    if (_focusedIndex == 1) {
+      _setFocus(2);
+      return;
     }
-    // الصف السفلي
-    else if (_bottomRowIndices.contains(_focusedIndex)) {
-      int currentPosition = _bottomRowIndices.indexOf(_focusedIndex);
-      if (currentPosition < _bottomRowIndices.length - 1) {
-        newIndex = _bottomRowIndices[currentPosition + 1];
-      } else {
-        return;
-      }
+    if (_focusedIndex == 3) {
+      _setFocus(4);
+      return;
     }
-
-    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
-      _setFocus(newIndex);
+    if (_focusedIndex == 4) {
+      _setFocus(5);
+      return;
     }
   }
 
   void _moveFocusRight() {
-    int newIndex = _focusedIndex;
+    if (_isSmallScreen) return;
 
-    if (_isSmallScreen) {
+    // يمين = تقليل index داخل الصف (RTL)
+    if (_focusedIndex == 1) {
+      _setFocus(0);
       return;
     }
-
-    // الصف العلوي
-    if (_topRowIndices.contains(_focusedIndex)) {
-      int currentPosition = _topRowIndices.indexOf(_focusedIndex);
-      if (currentPosition > 0) {
-        newIndex = _topRowIndices[currentPosition - 1];
-      } else {
-        return;
-      }
+    if (_focusedIndex == 2) {
+      _setFocus(1);
+      return;
     }
-    // الصف السفلي
-    else if (_bottomRowIndices.contains(_focusedIndex)) {
-      int currentPosition = _bottomRowIndices.indexOf(_focusedIndex);
-      if (currentPosition > 0) {
-        newIndex = _bottomRowIndices[currentPosition - 1];
-      } else {
-        return;
-      }
+    if (_focusedIndex == 4) {
+      _setFocus(3);
+      return;
     }
-
-    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
-      _setFocus(newIndex);
+    if (_focusedIndex == 5) {
+      _setFocus(4);
+      return;
     }
   }
 
   void _moveFocusUp() {
-    int newIndex = _focusedIndex;
-
     if (_isSmallScreen) {
-      newIndex = _focusedIndex - 1;
-      if (newIndex < 0) return;
-    } else {
-      // من الصف السفلي إلى الصف العلوي
-      if (_bottomRowIndices.contains(_focusedIndex)) {
-        int currentPosition = _bottomRowIndices.indexOf(_focusedIndex);
-        newIndex = _topRowIndices[currentPosition];
-      } else {
-        return;
-      }
+      if (_focusedIndex > 0) _setFocus(_focusedIndex - 1);
+      return;
     }
-
-    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
-      _setFocus(newIndex);
+    // من الصف السفلي إلى العلوي بنفس العمود
+    if (_focusedIndex == 3) {
+      _setFocus(0);
+      return;
+    }
+    if (_focusedIndex == 4) {
+      _setFocus(1);
+      return;
+    }
+    if (_focusedIndex == 5) {
+      _setFocus(2);
+      return;
     }
   }
 
   void _moveFocusDown() {
-    int newIndex = _focusedIndex;
-
     if (_isSmallScreen) {
-      newIndex = _focusedIndex + 1;
-      if (newIndex >= 6) return;
-    } else {
-      // من الصف العلوي إلى الصف السفلي
-      if (_topRowIndices.contains(_focusedIndex)) {
-        int currentPosition = _topRowIndices.indexOf(_focusedIndex);
-        newIndex = _bottomRowIndices[currentPosition];
-      } else {
-        return;
-      }
+      if (_focusedIndex < 5) _setFocus(_focusedIndex + 1);
+      return;
     }
-
-    if (newIndex != _focusedIndex && newIndex >= 0 && newIndex < 6) {
-      _setFocus(newIndex);
+    // من الصف العلوي إلى السفلي بنفس العمود
+    if (_focusedIndex == 0) {
+      _setFocus(3);
+      return;
+    }
+    if (_focusedIndex == 1) {
+      _setFocus(4);
+      return;
+    }
+    if (_focusedIndex == 2) {
+      _setFocus(5);
+      return;
     }
   }
 
@@ -209,8 +186,9 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     if (!mounted) return;
     setState(() {
       _focusedIndex = index;
-      _focusNodes[index].requestFocus();
     });
+    // إعادة التركيز للـ globalFocusNode لضمان استمرار استقبال أحداث لوحة المفاتيح
+    _globalFocusNode.requestFocus();
   }
 
   void _executeCurrentFocus() {
@@ -291,103 +269,98 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
     required Color color,
     required int index,
   }) {
-    return Focus(
-      focusNode: _focusNodes[index],
-      canRequestFocus: true,
-      descendantsAreFocusable: false,
-      child: Builder(
-        builder: (context) {
-          final hasFocus = _focusNodes[index].hasFocus;
-          return AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            transform: Matrix4.identity()..scale(hasFocus ? 1.05 : 1.0),
-            child: Material(
-              elevation: hasFocus ? 20 : 8,
+    final hasFocus = _focusedIndex == index;
+    return Builder(
+      builder: (context) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          transform: Matrix4.identity()..scale(hasFocus ? 1.05 : 1.0),
+          child: Material(
+            elevation: hasFocus ? 20 : 8,
+            borderRadius: BorderRadius.circular(20),
+            shadowColor: hasFocus ? Colors.amber : color.withOpacity(0.5),
+            child: InkWell(
+              onTap: () {
+                _setFocus(index);
+                _executeCurrentFocus();
+              },
               borderRadius: BorderRadius.circular(20),
-              shadowColor: hasFocus ? Colors.amber : color.withOpacity(0.5),
-              child: InkWell(
-                onTap: () {
-                  _setFocus(index);
-                  _executeCurrentFocus();
-                },
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  width: 350,
-                  height: 300,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: hasFocus
-                          ? [Colors.amber.shade600, Colors.orange.shade800]
-                          : [color, color.withOpacity(0.7)],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                    border: hasFocus
-                        ? Border.all(color: Colors.white, width: 4)
-                        : Border.all(color: Colors.transparent, width: 4),
-                    boxShadow: hasFocus
-                        ? [
-                            BoxShadow(
-                              color: Colors.amber.withOpacity(0.6),
-                              blurRadius: 25,
-                              spreadRadius: 3,
-                              offset: const Offset(0, 0),
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: color.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+              child: Container(
+                width: 350,
+                height: 300,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: hasFocus
+                        ? [Colors.amber.shade600, Colors.orange.shade800]
+                        : [color, color.withOpacity(0.7)],
                   ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        icon,
-                        size: hasFocus ? 52 : 42,
+                  borderRadius: BorderRadius.circular(20),
+                  border: hasFocus
+                      ? Border.all(color: Colors.white, width: 4)
+                      : Border.all(color: Colors.transparent, width: 4),
+                  boxShadow: hasFocus
+                      ? [
+                          BoxShadow(
+                            color: Colors.amber.withOpacity(0.6),
+                            blurRadius: 25,
+                            spreadRadius: 3,
+                            offset: const Offset(0, 0),
+                          ),
+                        ]
+                      : [
+                          BoxShadow(
+                            color: color.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: hasFocus ? 52 : 42,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
                         color: Colors.white,
+                        fontSize: hasFocus ? 18 : 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                        shadows: hasFocus
+                            ? [
+                                const Shadow(
+                                    color: Colors.black26, blurRadius: 4)
+                              ]
+                            : null,
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: hasFocus ? 18 : 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                          shadows: hasFocus
-                              ? [
-                                  const Shadow(
-                                      color: Colors.black26, blurRadius: 4)
-                                ]
-                              : null,
-                        ),
-                      ),
-                      if (hasFocus)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: Container(
-                            width: 40,
-                            height: 3,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+                    ),
+                    if (hasFocus)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: Container(
+                          width: 40,
+                          height: 3,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
-                    ],
-                  ),
+                      ),
+                  ],
                 ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
