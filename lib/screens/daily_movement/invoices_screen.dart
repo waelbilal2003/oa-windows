@@ -278,7 +278,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                     ),
                     child: pw.Center(
                       child: pw.Text(
-                        'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceTextPdf.',
+                        'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceTextPdf دولار.',
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
                           color: PdfColors.white,
@@ -675,7 +675,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceText.',
+                          'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceText دولار.',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: Colors.white,
