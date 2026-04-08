@@ -130,8 +130,8 @@ class HelpScreen extends StatelessWidget {
                   title: 'شاشة الإعدادات',
                   steps: const [
                     'أخرج من شاشة الأرصدة وادخل إلى شاشة الإعدادات.',
-                    'أدخل أسماء المواد التي تتعامل بها عبر "فهرس المواد".',
-                    'أدخل أنواع العبوات التي تستخدمها عبر "فهرس العبوات".',
+                    'أدخل أسماء المواد التي تتعامل بها عبر "فهرس المواد" بضغط زر اشارة + زائد يسار الشاشة.',
+                    'أدخل أنواع العبوات التي تستخدمها عبر "فهرس العبوات بضغط زر اشارة + زائد يسار الشاشة.',
                     'يمكن تغيير كلمة المرور، وإضافة اسم المحل، وتكبير حجم الخط أو الأيقونة.',
                     'بعد الانتهاء، أخرج من التطبيق وأعد الدخول مجدداً.',
                   ],
@@ -181,42 +181,45 @@ class HelpScreen extends StatelessWidget {
 
                 // ── معلومات التواصل ──
                 const SizedBox(height: 8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.green.shade700, Colors.green.shade900],
-                      begin: Alignment.topRight,
-                      end: Alignment.bottomLeft,
+                Center(
+                  child: Container(
+                    width: 500,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Colors.green.shade700, Colors.green.shade900],
+                        begin: Alignment.topRight,
+                        end: Alignment.bottomLeft,
+                      ),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.contact_phone,
-                          color: Colors.white, size: 32),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'للاستفسار والتواصل',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.contact_phone,
+                            color: Colors.white, size: 32),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'للاستفسار والتواصل',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14),
-                      _ContactRow(
-                        name: 'المحاسب أبو فراس الحجي',
-                        phone: '0944367326',
-                      ),
-                      const SizedBox(height: 8),
-                      _ContactRow(
-                        name: 'المبرمج وائل بلال',
-                        phone: '0935702074',
-                      ),
-                    ],
+                        const SizedBox(height: 14),
+                        _ContactRow(
+                          name: 'المحاسب أبو فراس الحجي',
+                          phone: '0944367326',
+                        ),
+                        const SizedBox(height: 8),
+                        _ContactRow(
+                          name: 'المبرمج وائل بلال',
+                          phone: '0935702074',
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -335,6 +338,7 @@ class _ContactRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      alignment: Alignment.center,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.15),

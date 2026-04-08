@@ -180,55 +180,8 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // الصف العلوي: زر الخروج (يسار) + زر المساعدة (يمين)
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // زر الخروج (يسار)
-                      ElevatedButton.icon(
-                        onPressed: () => exit(0),
-                        icon: const Icon(Icons.exit_to_app, size: 24),
-                        label: const Text(
-                          'خروج',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      // زر المساعدة (يمين)
-                      ElevatedButton.icon(
-                        onPressed: _openHelp,
-                        icon: const Icon(Icons.help_outline, size: 28),
-                        label: const Text(
-                          'مساعدة',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.amber[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // تم إزالة جميع الأزرار من الأعلى
+                const SizedBox(height: 12),
                 // المحتوى الرئيسي
                 Expanded(
                   child: Center(
@@ -243,8 +196,22 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.lock_outline,
-                                  size: 64, color: Colors.green[700]),
+                              Column(
+                                children: [
+                                  Icon(Icons.lock,
+                                      size: 64, color: Colors.green[700]),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'هذه النسخة مخصصة للتعامل بالدولار',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 'تعيين كلمة المرور',
@@ -310,23 +277,68 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
                                         color: Colors.red, fontSize: 13)),
                               ],
                               const SizedBox(height: 24),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _save,
-                                  icon: const Icon(Icons.save),
-                                  label: const Text('حفظ كلمة المرور',
-                                      style: TextStyle(fontSize: 16)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green[700],
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
+                              // صف الأزرار الأربعة أسفل الحقول
+                              Row(
+                                children: [
+                                  // زر حفظ - لون أخضر
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _save,
+                                      icon: const Icon(Icons.save, size: 20),
+                                      label: const Text('حفظ',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green[700],
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 10),
+                                  // زر مساعدة - لون كهرماني
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _openHelp,
+                                      icon: const Icon(Icons.help_outline,
+                                          size: 20),
+                                      label: const Text('مساعدة',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber[700],
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  // زر خروج - لون أحمر
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => exit(0),
+                                      icon: const Icon(Icons.exit_to_app,
+                                          size: 20),
+                                      label: const Text('خروج',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red[700],
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -344,6 +356,9 @@ class _SetPasswordScreenState extends State<_SetPasswordScreen> {
   }
 }
 
+// ════════════════════════════════════════════════════
+// شاشة إدخال كلمة المرور (بدون AppBar)
+// ════════════════════════════════════════════════════
 // ════════════════════════════════════════════════════
 // شاشة إدخال كلمة المرور (بدون AppBar)
 // ════════════════════════════════════════════════════
@@ -443,74 +458,90 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
                   Icon(Icons.lock_reset, color: Colors.orange[700]),
                   const SizedBox(width: 8),
                   const Text('تغيير كلمة المرور',
-                      style: TextStyle(fontSize: 16)),
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ],
+              ),
+              insetPadding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  TextField(
-                    controller: oldCtrl,
-                    focusNode: oldFocus,
-                    obscureText: true,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) =>
-                        FocusScope.of(ctx).requestFocus(newFocus),
-                    decoration: InputDecoration(
-                      labelText: 'كلمة المرور القديمة',
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                  SizedBox(
+                    width: MediaQuery.of(ctx).size.width * 0.7,
+                    child: TextField(
+                      controller: oldCtrl,
+                      focusNode: oldFocus,
+                      obscureText: true,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) =>
+                          FocusScope.of(ctx).requestFocus(newFocus),
+                      decoration: InputDecoration(
+                        labelText: 'كلمة المرور القديمة',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: newCtrl,
-                    focusNode: newFocus,
-                    obscureText: true,
-                    textInputAction: TextInputAction.next,
-                    onSubmitted: (_) =>
-                        FocusScope.of(ctx).requestFocus(confirmFocus),
-                    decoration: InputDecoration(
-                      labelText: 'كلمة المرور الجديدة',
-                      prefixIcon: const Icon(Icons.lock),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: MediaQuery.of(ctx).size.width * 0.7,
+                    child: TextField(
+                      controller: newCtrl,
+                      focusNode: newFocus,
+                      obscureText: true,
+                      textInputAction: TextInputAction.next,
+                      onSubmitted: (_) =>
+                          FocusScope.of(ctx).requestFocus(confirmFocus),
+                      decoration: InputDecoration(
+                        labelText: 'كلمة المرور الجديدة',
+                        prefixIcon: const Icon(Icons.lock),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: confirmCtrl,
-                    focusNode: confirmFocus,
-                    obscureText: true,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => doChange(),
-                    decoration: InputDecoration(
-                      labelText: 'تأكيد كلمة المرور',
-                      prefixIcon: const Icon(Icons.lock_reset),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: MediaQuery.of(ctx).size.width * 0.7,
+                    child: TextField(
+                      controller: confirmCtrl,
+                      focusNode: confirmFocus,
+                      obscureText: true,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => doChange(),
+                      decoration: InputDecoration(
+                        labelText: 'تأكيد كلمة المرور',
+                        prefixIcon: const Icon(Icons.lock_reset),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
                     ),
                   ),
                   if (dialogError != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
                     Text(dialogError!,
                         style:
-                            const TextStyle(color: Colors.red, fontSize: 12)),
+                            const TextStyle(color: Colors.red, fontSize: 13)),
                   ],
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('إلغاء'),
+                  child: const Text('إلغاء', style: TextStyle(fontSize: 16)),
                 ),
                 ElevatedButton(
                   onPressed: doChange,
                   style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange[700]),
-                  child: const Text('تغيير',
-                      style: TextStyle(color: Colors.white)),
+                      backgroundColor: Colors.deepPurple[700]),
+                  child: const Text('تغيير كلمة المرور ',
+                      style: TextStyle(color: Colors.white, fontSize: 16)),
                 ),
               ],
             ),
@@ -544,70 +575,7 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
           body: SafeArea(
             child: Column(
               children: [
-                // الصف العلوي: زر الخروج (يسار) + زر تغيير المرور + زر المساعدة (يمين)
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // زر الخروج (يسار)
-                      ElevatedButton.icon(
-                        onPressed: () => exit(0),
-                        icon: const Icon(Icons.exit_to_app, size: 24),
-                        label: const Text(
-                          'خروج',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red[700],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 12),
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
-                      // زر تغيير كلمة المرور (وسط) + زر المساعدة (يمين)
-                      Row(
-                        children: [
-                          TextButton.icon(
-                            onPressed: _showChangePasswordDialog,
-                            icon: Icon(Icons.lock_reset,
-                                color: Colors.green[700], size: 24),
-                            label: Text('تغيير كلمة المرور',
-                                style: TextStyle(
-                                    fontSize: 16, color: Colors.green[700])),
-                          ),
-                          const SizedBox(width: 8),
-                          // زر المساعدة (يمين)
-                          ElevatedButton.icon(
-                            onPressed: _openHelp,
-                            icon: const Icon(Icons.help_outline, size: 28),
-                            label: const Text(
-                              'مساعدة',
-                              style: TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.amber[700],
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 20, vertical: 12),
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                // المحتوى الرئيسي
+                const SizedBox(height: 12),
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
@@ -621,8 +589,23 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.lock,
-                                  size: 64, color: Colors.green[700]),
+                              // ✅ تم إضافة العبارة هنا فوق الأيقونة
+                              Column(
+                                children: [
+                                  Icon(Icons.lock,
+                                      size: 64, color: Colors.green[700]),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'هذه النسخة مخصصة للتعامل بالدولار',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 12),
                               Text(
                                 'تسجيل الدخول',
@@ -666,23 +649,84 @@ class _EnterPasswordScreenState extends State<_EnterPasswordScreen> {
                                         color: Colors.red, fontSize: 13)),
                               ],
                               const SizedBox(height: 24),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _login,
-                                  icon: const Icon(Icons.login),
-                                  label: const Text('دخول',
-                                      style: TextStyle(fontSize: 16)),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green[700],
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 14),
-                                    shape: RoundedRectangleBorder(
-                                        borderRadius:
-                                            BorderRadius.circular(10)),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _login,
+                                      icon: const Icon(Icons.login, size: 20),
+                                      label: const Text('دخول',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.green[700],
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _showChangePasswordDialog,
+                                      icon: const Icon(Icons.lock_reset,
+                                          size: 20),
+                                      label: const Text('تغيير كلمة المرور',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.deepPurple[700],
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: _openHelp,
+                                      icon: const Icon(Icons.help_outline,
+                                          size: 20),
+                                      label: const Text('مساعدة',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color.fromARGB(
+                                            255, 194, 118, 18),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: () => exit(0),
+                                      icon: const Icon(Icons.exit_to_app,
+                                          size: 20),
+                                      label: const Text('خروج',
+                                          style: TextStyle(fontSize: 14)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.red[700],
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

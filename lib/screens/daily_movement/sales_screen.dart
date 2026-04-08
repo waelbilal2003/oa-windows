@@ -1302,7 +1302,192 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   Widget _buildMainContent() {
-    return _buildTableWithStickyHeader();
+    return Stack(
+      children: [
+        Column(
+          children: [
+            Expanded(
+              child: _buildTableWithStickyHeader(),
+            ),
+            const SizedBox(height: 90),
+          ],
+        ),
+        if (rowControllers.length >= 1)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.orange[700],
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.orange[700]!.withOpacity(0.45),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // المجموع — تحت عمود المادة
+                    Expanded(
+                      child: Center(
+                        child: const Text(
+                          'المجموع',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // العدد
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'العدد',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalCountController,
+                            builder: (context, value, child) {
+                              return Text(
+                                value.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // العبوة — فارغ
+                    Expanded(
+                      child: const SizedBox.shrink(),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // القائم
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'القائم',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalBaseController,
+                            builder: (context, value, child) {
+                              return Text(
+                                value.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // الصافي
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'الصافي',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalNetController,
+                            builder: (context, value, child) {
+                              return Text(
+                                value.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.lightGreenAccent,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // السعر — فارغ
+                    Expanded(
+                      child: const SizedBox.shrink(),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // الإجمالي
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'الإجمالي',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalGrandController,
+                            builder: (context, value, child) {
+                              return Text(
+                                value.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.lightGreenAccent,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // نقدي/دين — فارغ
+                    Expanded(
+                      child: const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   Widget _buildTableWithStickyHeader() {

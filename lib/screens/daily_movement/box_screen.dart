@@ -2047,14 +2047,159 @@ class _BoxScreenState extends State<BoxScreen> {
   }
 
   Widget _buildMainContent() {
-    return Column(
+    return Stack(
       children: [
-        // مستطيل الرصيد مباشرةً تحت الـ AppBar
-        _buildBalanceBar(),
-        // الجدول الرئيسي
-        Expanded(
-          child: _buildTableWithStickyHeader(),
+        Column(
+          children: [
+            _buildBalanceBar(),
+            Expanded(
+              child: _buildTableWithStickyHeader(),
+            ),
+            const SizedBox(height: 90),
+          ],
         ),
+        if (rowControllers.length >= 1)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 0, vertical: 14),
+                decoration: BoxDecoration(
+                  color: const Color.fromARGB(255, 14, 82, 184),
+                  borderRadius: BorderRadius.circular(40),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color.fromARGB(255, 14, 82, 184)
+                          .withOpacity(0.45),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    // مقبوض
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'مقبوض',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalReceivedController,
+                            builder: (context, value, child) {
+                              return Text(
+                                value.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.lightGreenAccent,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // مدفوع
+                    Expanded(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'مدفوع',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalPaidController,
+                            builder: (context, value, child) {
+                              return Text(
+                                value.text,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // الصافي
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'الصافي',
+                            style:
+                                TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                          const SizedBox(height: 2),
+                          ValueListenableBuilder<TextEditingValue>(
+                            valueListenable: totalReceivedController,
+                            builder: (context, recValue, child) {
+                              return ValueListenableBuilder<TextEditingValue>(
+                                valueListenable: totalPaidController,
+                                builder: (context, paidValue, child) {
+                                  final net = (double.tryParse(recValue.text) ??
+                                          0) -
+                                      (double.tryParse(paidValue.text) ?? 0);
+                                  return Text(
+                                    net.toStringAsFixed(2),
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: net >= 0
+                                          ? Colors.lightBlueAccent
+                                          : Colors.orangeAccent,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(width: 1, height: 32, color: Colors.white24),
+                    // المجموع — كلمة فقط تملأ الحقل
+                    Expanded(
+                      child: Center(
+                        child: const Text(
+                          'المجموع',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
