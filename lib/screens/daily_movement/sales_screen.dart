@@ -6,7 +6,6 @@ import '../../services/sales_storage_service.dart';
 import '../../services/material_index_service.dart';
 import '../../services/packaging_index_service.dart';
 import '../../services/customer_index_service.dart';
-import '../../services/enhanced_index_service.dart';
 
 import '../../widgets/table_builder.dart' as TableBuilder;
 import '../../widgets/table_components.dart' as TableComponents;
@@ -108,6 +107,11 @@ class _SalesScreenState extends State<SalesScreen> {
   FocusNode? _addButtonFocusNode;
   int _currentFocusRow = -1;
   int _currentFocusCol = -1;
+
+  List<SuggestionItem> _materialSuggestionItems = [];
+  List<SuggestionItem> _packagingSuggestionItems = [];
+  List<SuggestionItem> _supplierSuggestionItems = [];
+  List<SuggestionItem> _customerSuggestionItems = [];
 
   @override
   void initState() {
@@ -316,29 +320,45 @@ class _SalesScreenState extends State<SalesScreen> {
     });
   }
 
-  // تحديث اقتراحات المادة - مثل purchases_screen بالضبط
-  // تحديث اقتراحات المادة - تم التعديل لظهور الاقتراحات بعد حرف واحد
   void _updateMaterialSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][0].text;
     if (query.length >= 1) {
-      // تم التغيير من 3 إلى 1
-      final suggestions =
-          await getEnhancedSuggestions(_materialIndexService, query);
+      final allWithNumbers =
+          await _materialIndexService.getAllMaterialsWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
       if (mounted) {
         setState(() {
-          _materialSuggestions = suggestions;
+          _materialSuggestionItems = displaySuggestions;
+          _materialSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
           _activeMaterialRowIndex = rowIndex;
-          if (suggestions.isNotEmpty) {
-            _toggleFullScreenSuggestions(type: 'material', show: true);
-          } else {
-            _toggleFullScreenSuggestions(type: 'material', show: false);
-          }
+          _toggleFullScreenSuggestions(
+              type: 'material', show: displaySuggestions.isNotEmpty);
         });
       }
     } else {
       if (mounted) {
         setState(() {
           _materialSuggestions = [];
+          _materialSuggestionItems = [];
           _activeMaterialRowIndex = null;
           _toggleFullScreenSuggestions(type: 'material', show: false);
         });
@@ -346,28 +366,45 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
-  // تحديث اقتراحات العبوة - مثل purchases_screen بالضبط
   void _updatePackagingSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][2].text;
     if (query.length >= 1) {
-      // تم التغيير من 3 إلى 1
-      final suggestions =
-          await getEnhancedSuggestions(_packagingIndexService, query);
+      final allWithNumbers =
+          await _packagingIndexService.getAllPackagingsWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
       if (mounted) {
         setState(() {
-          _packagingSuggestions = suggestions;
+          _packagingSuggestionItems = displaySuggestions;
+          _packagingSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
           _activePackagingRowIndex = rowIndex;
-          if (suggestions.isNotEmpty) {
-            _toggleFullScreenSuggestions(type: 'packaging', show: true);
-          } else {
-            _toggleFullScreenSuggestions(type: 'packaging', show: false);
-          }
+          _toggleFullScreenSuggestions(
+              type: 'packaging', show: displaySuggestions.isNotEmpty);
         });
       }
     } else {
       if (mounted) {
         setState(() {
           _packagingSuggestions = [];
+          _packagingSuggestionItems = [];
           _activePackagingRowIndex = null;
           _toggleFullScreenSuggestions(type: 'packaging', show: false);
         });
@@ -375,28 +412,65 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
+  void _updateCustomerSuggestions(int rowIndex) async {
+    if (rowControllers[rowIndex].length <= 7) return;
+    final query = rowControllers[rowIndex][7].text;
+    if (query.length >= 1 && cashOrDebtValues[rowIndex] == 'دين') {
+      final allWithNumbers =
+          await _customerIndexService.getAllCustomersWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
+      if (mounted) {
+        setState(() {
+          _customerSuggestionItems = displaySuggestions;
+          _customerSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
+          _activeCustomerRowIndex = rowIndex;
+          _toggleFullScreenSuggestions(
+              type: 'customer', show: displaySuggestions.isNotEmpty);
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _customerSuggestions = [];
+          _customerSuggestionItems = [];
+          _activeCustomerRowIndex = null;
+          _toggleFullScreenSuggestions(type: 'customer', show: false);
+        });
+      }
+    }
+  }
+
   // 1. اختيار اقتراح للمادة
   void _selectMaterialSuggestion(String suggestion, int rowIndex) {
-    // التأكد من أن الصف لا يزال موجوداً
     if (rowIndex >= rowControllers.length) return;
-
-    // أولاً: إخفاء نافذة الاقتراحات
     _toggleFullScreenSuggestions(type: 'material', show: false);
-
-    // ثانياً: تعيين النص في المتحكم مباشرة (لا حاجة لـ setState هنا)
-    rowControllers[rowIndex][0].text = suggestion;
-
-    // ثالثاً: تحديث حالة "التغييرات غير المحفوظة" (هنا نحتاج setState)
+    final actualName = _extractNameFromSuggestion(suggestion);
+    rowControllers[rowIndex][0].text = actualName;
     setState(() {
       _hasUnsavedChanges = true;
     });
-
-    // رابعاً: حفظ المادة في الفهرس
-    if (suggestion.trim().length > 1) {
-      _saveMaterialToIndex(suggestion);
+    if (actualName.trim().length > 1) {
+      _saveMaterialToIndex(actualName);
     }
-
-    // خامساً: نقل التركيز إلى حقل العدد (index 1) بعد تأخير بسيط
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted && rowIndex < rowFocusNodes.length) {
         if (rowFocusNodes[rowIndex].length > 1) {
@@ -408,26 +482,16 @@ class _SalesScreenState extends State<SalesScreen> {
 
 // 2. اختيار اقتراح للعبوة
   void _selectPackagingSuggestion(String suggestion, int rowIndex) {
-    // التأكد من أن الصف لا يزال موجوداً
     if (rowIndex >= rowControllers.length) return;
-
-    // أولاً: إخفاء نافذة الاقتراحات
     _toggleFullScreenSuggestions(type: 'packaging', show: false);
-
-    // ثانياً: تعيين النص في المتحكم مباشرة
-    rowControllers[rowIndex][2].text = suggestion;
-
-    // ثالثاً: تحديث حالة "التغييرات غير المحفوظة"
+    final actualName = _extractNameFromSuggestion(suggestion);
+    rowControllers[rowIndex][2].text = actualName;
     setState(() {
       _hasUnsavedChanges = true;
     });
-
-    // رابعاً: حفظ العبوة في الفهرس
-    if (suggestion.trim().length > 1) {
-      _savePackagingToIndex(suggestion);
+    if (actualName.trim().length > 1) {
+      _savePackagingToIndex(actualName);
     }
-
-    // خامساً: نقل التركيز إلى حقل القائم (index 3) بعد تأخير بسيط
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted && rowIndex < rowFocusNodes.length) {
         if (rowFocusNodes[rowIndex].length > 3) {
@@ -440,21 +504,16 @@ class _SalesScreenState extends State<SalesScreen> {
 // 4. اختيار اقتراح للزبون
   void _selectCustomerSuggestion(String suggestion, int rowIndex) {
     if (rowIndex >= rowControllers.length) return;
-
     _toggleFullScreenSuggestions(type: 'customer', show: false);
-
-    rowControllers[rowIndex][7].text = suggestion;
-
+    final actualName = _extractNameFromSuggestion(suggestion);
+    rowControllers[rowIndex][7].text = actualName;
     setState(() {
-      customerNames[rowIndex] = suggestion; // ✅ حفظ الاسم فوراً
+      customerNames[rowIndex] = actualName;
       _hasUnsavedChanges = true;
     });
-
-    if (suggestion.trim().length > 1) {
-      _saveCustomerToIndex(suggestion);
+    if (actualName.trim().length > 1) {
+      _saveCustomerToIndex(actualName);
     }
-
-    // بعد اختيار الزبون من الاقتراحات → إنشاء صف جديد مباشرة (بدون نافذة فوارغ)
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) {
         _addNewRow();
@@ -1116,7 +1175,8 @@ class _SalesScreenState extends State<SalesScreen> {
                 _getSuggestionsByType().isNotEmpty)
               Expanded(
                 child: SuggestionsBanner(
-                  suggestions: _getSuggestionsByType(),
+                  suggestions:
+                      _getSuggestionsByType(), // الآن ترسل List<SuggestionItem>
                   type: _currentSuggestionType,
                   currentRowIndex: _getCurrentRowIndexByType(),
                   scrollController: _horizontalSuggestionsController,
@@ -1766,36 +1826,6 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
-  void _updateCustomerSuggestions(int rowIndex) async {
-    if (rowControllers[rowIndex].length <= 7) return;
-
-    final query = rowControllers[rowIndex][7].text;
-    if (query.length >= 1 && cashOrDebtValues[rowIndex] == 'دين') {
-      // تم التغيير من 1 إلى 1 (يبقى كما هو، ولكن أضفت الشرط بشكل أوضح)
-      final suggestions =
-          await getEnhancedSuggestions(_customerIndexService, query);
-      if (mounted) {
-        setState(() {
-          _customerSuggestions = suggestions;
-          _activeCustomerRowIndex = rowIndex;
-          if (suggestions.isNotEmpty) {
-            _toggleFullScreenSuggestions(type: 'customer', show: true);
-          } else {
-            _toggleFullScreenSuggestions(type: 'customer', show: false);
-          }
-        });
-      }
-    } else {
-      if (mounted) {
-        setState(() {
-          _customerSuggestions = [];
-          _activeCustomerRowIndex = null;
-          _toggleFullScreenSuggestions(type: 'customer', show: false);
-        });
-      }
-    }
-  }
-
   // حفظ الزبون في الفهرس
   void _saveCustomerToIndex(String customer) {
     final trimmedCustomer = customer.trim();
@@ -1836,16 +1866,16 @@ class _SalesScreenState extends State<SalesScreen> {
     }
   }
 
-  List<String> _getSuggestionsByType() {
+  List<SuggestionItem> _getSuggestionsByType() {
     switch (_currentSuggestionType) {
       case 'material':
-        return _materialSuggestions;
+        return _materialSuggestionItems;
       case 'packaging':
-        return _packagingSuggestions;
+        return _packagingSuggestionItems;
       case 'supplier':
-        return _supplierSuggestions;
+        return _supplierSuggestionItems;
       case 'customer':
-        return _customerSuggestions;
+        return _customerSuggestionItems;
       default:
         return [];
     }
@@ -2102,6 +2132,17 @@ class _SalesScreenState extends State<SalesScreen> {
         curve: Curves.easeOut,
       );
     }
+  }
+
+  String _extractNameFromSuggestion(String suggestion) {
+    // البحث عن أول نقطة متبوعة بمسافة
+    final dotIndex = suggestion.indexOf('. ');
+    if (dotIndex != -1 && dotIndex + 2 < suggestion.length) {
+      // استخراج النص بعد النقطة والمسافة
+      return suggestion.substring(dotIndex + 2).trim();
+    }
+    // إذا لم يجد النمط المتوقع، يرجع النص الأصلي
+    return suggestion.trim();
   }
 }
 

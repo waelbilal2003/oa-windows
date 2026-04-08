@@ -1,10 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
 
 import '../../models/invoice_model.dart';
 import '../../services/invoices_service.dart';
@@ -12,6 +9,9 @@ import '../../services/customer_index_service.dart';
 import '../../widgets/date_range_filter.dart';
 import '../../widgets/exit_button.dart';
 import 'package:flutter/services.dart';
+
+import '../../widgets/pdf_action_menu.dart';
+import 'dart:typed_data';
 
 class InvoicesScreen extends StatefulWidget {
   final String selectedDate;
@@ -32,7 +32,7 @@ class InvoicesScreen extends StatefulWidget {
 class _InvoicesScreenState extends State<InvoicesScreen> {
   final InvoicesService _invoicesService = InvoicesService();
   final CustomerIndexService _customerIndexService = CustomerIndexService();
-  late Future<List<InvoiceItem>> _invoiceDataFuture;
+  Future<List<InvoiceItem>> _invoiceDataFuture = Future.value([]);
   double? _customerBalance;
   final FocusNode _keyboardFocusNode = FocusNode();
   final ScrollController _scrollController = ScrollController();
@@ -118,191 +118,6 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
       _filteredItems = items;
       _invoiceDataFuture = Future.value(items);
     });
-  }
-
-  Future<void> _generateAndSharePdf(
-      List<InvoiceItem> items, double? customerBalance) async {
-    final pdf = pw.Document();
-
-    var arabicFont;
-    try {
-      final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
-      arabicFont = pw.Font.ttf(fontData);
-    } catch (e) {
-      arabicFont = pw.Font.courier();
-      debugPrint("Error loading font: $e");
-    }
-
-    double totalCount = 0;
-    double totalStanding = 0;
-    double totalNet = 0;
-    double grandTotal = 0;
-
-    for (var item in items) {
-      totalStanding += double.tryParse(item.standing) ?? 0;
-      totalNet += double.tryParse(item.net) ?? 0;
-      totalCount += double.tryParse(item.count) ?? 0;
-      grandTotal += double.tryParse(item.total) ?? 0;
-    }
-
-    String filterDesc = 'الفترة: حتى تاريخ ${widget.selectedDate}';
-    if (_filterFrom != null || _filterTo != null) {
-      final from = _filterFrom != null
-          ? '${_filterFrom!.year}/${_filterFrom!.month}/${_filterFrom!.day}'
-          : 'البداية';
-      final to = _filterTo != null
-          ? '${_filterTo!.year}/${_filterTo!.month}/${_filterTo!.day}'
-          : 'النهاية';
-      filterDesc = 'الفترة: من $from إلى $to';
-    }
-
-    final PdfColor headerColor = PdfColor.fromInt(0xFF5C6BC0);
-    final PdfColor headerTextColor = PdfColors.white;
-    final PdfColor rowEvenColor = PdfColors.white;
-    final PdfColor rowOddColor = PdfColor.fromInt(0xFFE8EAF6);
-    final PdfColor borderColor = PdfColor.fromInt(0xFFE0E0E0);
-    final PdfColor totalRowColor = PdfColor.fromInt(0xFFC5CAE9);
-    final PdfColor grandTotalColor = PdfColor.fromInt(0xFF283593);
-
-    final String balanceTextPdf =
-        customerBalance != null ? customerBalance.toStringAsFixed(2) : '---';
-
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        textDirection: pw.TextDirection.rtl,
-        theme: pw.ThemeData.withFont(
-          base: arabicFont,
-          bold: arabicFont,
-        ),
-        build: (pw.Context context) {
-          return [
-            pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Column(
-                children: [
-                  pw.Center(
-                    child: pw.Text(
-                      'فاتورة الزبون ${widget.customerName}',
-                      style: pw.TextStyle(
-                        fontSize: 18,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                      textDirection: pw.TextDirection.rtl,
-                    ),
-                  ),
-                  pw.SizedBox(height: 5),
-                  pw.Center(
-                    child: pw.Text(
-                      '${filterDesc} لمحل ${widget.storeName}',
-                      style: const pw.TextStyle(
-                          fontSize: 14, color: PdfColors.grey700),
-                      textDirection: pw.TextDirection.rtl,
-                    ),
-                  ),
-                  pw.SizedBox(height: 15),
-                  pw.Table(
-                    border: pw.TableBorder.all(color: borderColor, width: 0.5),
-                    columnWidths: {
-                      0: const pw.FlexColumnWidth(2),
-                      1: const pw.FlexColumnWidth(3),
-                      2: const pw.FlexColumnWidth(2),
-                      3: const pw.FlexColumnWidth(3),
-                      4: const pw.FlexColumnWidth(2),
-                      5: const pw.FlexColumnWidth(2),
-                      6: const pw.FlexColumnWidth(2),
-                      7: const pw.FlexColumnWidth(3),
-                    },
-                    children: [
-                      pw.TableRow(
-                        decoration: pw.BoxDecoration(color: headerColor),
-                        children: [
-                          _buildPdfHeaderCell('التاريخ', headerTextColor),
-                          _buildPdfHeaderCell('المادة', headerTextColor),
-                          _buildPdfHeaderCell('العدد', headerTextColor),
-                          _buildPdfHeaderCell('العبوة', headerTextColor),
-                          _buildPdfHeaderCell('القائم', headerTextColor),
-                          _buildPdfHeaderCell('الصافي', headerTextColor),
-                          _buildPdfHeaderCell('السعر', headerTextColor),
-                          _buildPdfHeaderCell('الإجمالي', headerTextColor),
-                        ],
-                      ),
-                      ...items.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final item = entry.value;
-                        final color =
-                            index % 2 == 0 ? rowEvenColor : rowOddColor;
-                        return pw.TableRow(
-                          decoration: pw.BoxDecoration(color: color),
-                          children: [
-                            _buildPdfCell(item.date),
-                            _buildPdfCell(item.material),
-                            _buildPdfCell(item.count),
-                            _buildPdfCell(item.packaging),
-                            _buildPdfCell(item.standing),
-                            _buildPdfCell(item.net),
-                            _buildPdfCell(item.price),
-                            _buildPdfCell(item.total,
-                                textColor: PdfColor.fromInt(0xFF1A237E),
-                                isBold: true),
-                          ],
-                        );
-                      }).toList(),
-                      pw.TableRow(
-                        decoration: pw.BoxDecoration(color: totalRowColor),
-                        children: [
-                          _buildPdfCell(''),
-                          _buildPdfCell('المجموع', isBold: true),
-                          _buildPdfCell(totalCount.toStringAsFixed(0),
-                              isBold: true),
-                          _buildPdfCell(''),
-                          _buildPdfCell(totalStanding.toStringAsFixed(2),
-                              isBold: true),
-                          _buildPdfCell(totalNet.toStringAsFixed(2),
-                              isBold: true),
-                          _buildPdfCell(''),
-                          _buildPdfCell(grandTotal.toStringAsFixed(2),
-                              textColor: PdfColor.fromInt(0xFF1A237E),
-                              isBold: true),
-                        ],
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 20),
-                  pw.Container(
-                    width: double.infinity,
-                    padding: const pw.EdgeInsets.all(10),
-                    decoration: pw.BoxDecoration(
-                      color: grandTotalColor,
-                      borderRadius: pw.BorderRadius.circular(4),
-                    ),
-                    child: pw.Center(
-                      child: pw.Text(
-                        'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceTextPdf دولار.',
-                        textAlign: pw.TextAlign.center,
-                        style: pw.TextStyle(
-                          color: PdfColors.white,
-                          fontSize: 14,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                        textDirection: pw.TextDirection.rtl,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ];
-        },
-      ),
-    );
-
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/فاتورة_${widget.customerName}.pdf");
-    await file.writeAsBytes(await pdf.save());
-
-    await Share.shareXFiles([XFile(file.path)],
-        text: 'فاتورة الزبون ${widget.customerName} - ${filterDesc}');
   }
 
   pw.Widget _buildPdfHeaderCell(String text, PdfColor color) {
@@ -446,18 +261,17 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                 },
                 color: Colors.white,
               ),
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf),
-                tooltip: 'مشاركة PDF',
-                onPressed: () async {
-                  if (_filteredItems.isNotEmpty) {
-                    _generateAndSharePdf(_filteredItems, _customerBalance);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('لا توجد بيانات لمشاركتها')),
-                    );
-                  }
-                },
+              PdfActionMenu(
+                getItems: () async => _filteredItems,
+                generatePdfCallback: (items) =>
+                    _generatePdfBytes(items as List<InvoiceItem>),
+                supplierOrCustomerName: widget.customerName,
+                filterDesc:
+                    'الفترة: ${_filterFrom != null || _filterTo != null ? "من ${_filterFrom?.year}/${_filterFrom?.month}/${_filterFrom?.day} إلى ${_filterTo?.year}/${_filterTo?.month}/${_filterTo?.day}" : "حتى ${widget.selectedDate}"}',
+                balance: _customerBalance,
+                storeName: widget.storeName,
+                selectedDate: widget.selectedDate,
+                type: 'customer',
               ),
             ],
             bottom: PreferredSize(
@@ -693,5 +507,184 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
         ),
       ),
     );
+  }
+
+  Future<Uint8List> _generatePdfBytes(List<InvoiceItem> items) async {
+    final pdf = pw.Document();
+
+    var arabicFont;
+    try {
+      final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
+      arabicFont = pw.Font.ttf(fontData);
+    } catch (e) {
+      arabicFont = pw.Font.courier();
+      debugPrint("Error loading font: $e");
+    }
+
+    double totalCount = 0;
+    double totalStanding = 0;
+    double totalNet = 0;
+    double grandTotal = 0;
+
+    for (var item in items) {
+      totalStanding += double.tryParse(item.standing) ?? 0;
+      totalNet += double.tryParse(item.net) ?? 0;
+      totalCount += double.tryParse(item.count) ?? 0;
+      grandTotal += double.tryParse(item.total) ?? 0;
+    }
+
+    String filterDesc = 'الفترة: حتى تاريخ ${widget.selectedDate}';
+    if (_filterFrom != null || _filterTo != null) {
+      final from = _filterFrom != null
+          ? '${_filterFrom!.year}/${_filterFrom!.month}/${_filterFrom!.day}'
+          : 'البداية';
+      final to = _filterTo != null
+          ? '${_filterTo!.year}/${_filterTo!.month}/${_filterTo!.day}'
+          : 'النهاية';
+      filterDesc = 'الفترة: من $from إلى $to';
+    }
+
+    final PdfColor headerColor = PdfColor.fromInt(0xFF5C6BC0);
+    final PdfColor headerTextColor = PdfColors.white;
+    final PdfColor rowEvenColor = PdfColors.white;
+    final PdfColor rowOddColor = PdfColor.fromInt(0xFFE8EAF6);
+    final PdfColor borderColor = PdfColor.fromInt(0xFFE0E0E0);
+    final PdfColor totalRowColor = PdfColor.fromInt(0xFFC5CAE9);
+    final PdfColor grandTotalColor = PdfColor.fromInt(0xFF283593);
+
+    final String balanceTextPdf =
+        _customerBalance != null ? _customerBalance!.toStringAsFixed(2) : '---';
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(
+          base: arabicFont,
+          bold: arabicFont,
+        ),
+        build: (pw.Context context) {
+          return [
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                children: [
+                  pw.Center(
+                    child: pw.Text(
+                      'فاتورة الزبون ${widget.customerName}',
+                      style: pw.TextStyle(
+                        fontSize: 18,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Center(
+                    child: pw.Text(
+                      '${filterDesc} لمحل ${widget.storeName}',
+                      style: const pw.TextStyle(
+                          fontSize: 14, color: PdfColors.grey700),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  ),
+                  pw.SizedBox(height: 15),
+                  pw.Table(
+                    border: pw.TableBorder.all(color: borderColor, width: 0.5),
+                    columnWidths: {
+                      0: const pw.FlexColumnWidth(3), // الإجمالي
+                      1: const pw.FlexColumnWidth(2), // السعر
+                      2: const pw.FlexColumnWidth(2), // الصافي
+                      3: const pw.FlexColumnWidth(2), // القائم
+                      4: const pw.FlexColumnWidth(3), // العبوة
+                      5: const pw.FlexColumnWidth(2), // العدد
+                      6: const pw.FlexColumnWidth(3), // المادة
+                      7: const pw.FlexColumnWidth(2), // التاريخ
+                    },
+                    children: [
+                      pw.TableRow(
+                        decoration: pw.BoxDecoration(color: headerColor),
+                        children: [
+                          _buildPdfHeaderCell('الإجمالي', headerTextColor),
+                          _buildPdfHeaderCell('السعر', headerTextColor),
+                          _buildPdfHeaderCell('الصافي', headerTextColor),
+                          _buildPdfHeaderCell('القائم', headerTextColor),
+                          _buildPdfHeaderCell('العبوة', headerTextColor),
+                          _buildPdfHeaderCell('العدد', headerTextColor),
+                          _buildPdfHeaderCell('المادة', headerTextColor),
+                          _buildPdfHeaderCell('التاريخ', headerTextColor),
+                        ],
+                      ),
+                      ...items.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final item = entry.value;
+                        final color =
+                            index % 2 == 0 ? rowEvenColor : rowOddColor;
+                        return pw.TableRow(
+                          decoration: pw.BoxDecoration(color: color),
+                          children: [
+                            _buildPdfCell(item.total,
+                                textColor: PdfColor.fromInt(0xFF1A237E),
+                                isBold: true),
+                            _buildPdfCell(item.price),
+                            _buildPdfCell(item.net),
+                            _buildPdfCell(item.standing),
+                            _buildPdfCell(item.packaging),
+                            _buildPdfCell(item.count),
+                            _buildPdfCell(item.material),
+                            _buildPdfCell(item.date),
+                          ],
+                        );
+                      }).toList(),
+                      pw.TableRow(
+                        decoration: pw.BoxDecoration(color: totalRowColor),
+                        children: [
+                          _buildPdfCell(grandTotal.toStringAsFixed(2),
+                              textColor: PdfColor.fromInt(0xFF1A237E),
+                              isBold: true),
+                          _buildPdfCell(''),
+                          _buildPdfCell(totalNet.toStringAsFixed(2),
+                              isBold: true),
+                          _buildPdfCell(totalStanding.toStringAsFixed(2),
+                              isBold: true),
+                          _buildPdfCell(''),
+                          _buildPdfCell(totalCount.toStringAsFixed(0),
+                              isBold: true),
+                          _buildPdfCell('المجموع', isBold: true),
+                          _buildPdfCell(''),
+                        ],
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Container(
+                    width: double.infinity,
+                    padding: const pw.EdgeInsets.all(10),
+                    decoration: pw.BoxDecoration(
+                      color: grandTotalColor,
+                      borderRadius: pw.BorderRadius.circular(4),
+                    ),
+                    child: pw.Center(
+                      child: pw.Text(
+                        'المجموع ${grandTotal.toStringAsFixed(2)} دولار فقط لا غير  الرصيد : $balanceTextPdf دولار.',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                        ),
+                        textDirection: pw.TextDirection.rtl,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return await pdf.save();
   }
 }

@@ -44,6 +44,8 @@ dependencies:
   file_picker: ^8.0.3   # اختيار ملف الاسترجاع
 
   window_manager: ^0.3.8
+
+  printing: ^5.14.3
   
 dev_dependencies:
   flutter_test:

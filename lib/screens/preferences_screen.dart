@@ -298,7 +298,7 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                   ),
                   borderRadius: BorderRadius.circular(20),
                   border: hasFocus
-                      ? Border.all(color: Colors.white, width: 4)
+                      ? Border.all(color: Colors.black, width: 6)
                       : Border.all(color: Colors.transparent, width: 4),
                   boxShadow: hasFocus
                       ? [
@@ -320,10 +320,18 @@ class _PreferencesScreenState extends State<PreferencesScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      icon,
-                      size: hasFocus ? 52 : 42,
-                      color: Colors.white,
+                    AnimatedRotation(
+                      turns: hasFocus ? 0.05 : 0.0,
+                      duration: const Duration(milliseconds: 300),
+                      child: AnimatedScale(
+                        scale: hasFocus ? 1.2 : 1.0,
+                        duration: const Duration(milliseconds: 300),
+                        child: Icon(
+                          icon,
+                          size: hasFocus ? 52 : 42,
+                          color: hasFocus ? Colors.yellowAccent : Colors.white,
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(

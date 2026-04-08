@@ -6,7 +6,6 @@ import '../../services/box_storage_service.dart';
 import '../../widgets/table_components.dart' as TableComponents;
 import '../../services/customer_index_service.dart';
 import '../../services/supplier_index_service.dart';
-import '../../services/enhanced_index_service.dart';
 import '../../widgets/suggestions_banner.dart';
 import '../../widgets/exit_button.dart';
 import '../../services/app_settings_service.dart';
@@ -17,6 +16,9 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 import '../../services/sales_storage_service.dart';
 import '../../services/purchase_storage_service.dart';
+
+List<SuggestionItem> _customerSuggestionItems = [];
+List<SuggestionItem> _supplierSuggestionItems = [];
 
 class BoxScreen extends StatefulWidget {
   final String sellerName;
@@ -1728,19 +1730,46 @@ class _BoxScreenState extends State<BoxScreen> {
   void _updateCustomerSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][2].text;
     if (query.length >= 1 && accountTypeValues[rowIndex] == 'زبون') {
-      final suggestions =
-          await getEnhancedSuggestions(_customerIndexService, query);
-      setState(() {
-        _customerSuggestions = suggestions;
-        _activeCustomerRowIndex = rowIndex;
-        _toggleFullScreenSuggestions(
-            type: 'customer', show: suggestions.isNotEmpty);
-      });
+      final allWithNumbers =
+          await _customerIndexService.getAllCustomersWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
+      if (mounted) {
+        setState(() {
+          _customerSuggestionItems = displaySuggestions;
+          _customerSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
+          _activeCustomerRowIndex = rowIndex;
+          _toggleFullScreenSuggestions(
+              type: 'customer', show: displaySuggestions.isNotEmpty);
+        });
+      }
     } else {
-      setState(() {
-        _customerSuggestions = [];
-        _activeCustomerRowIndex = null;
-      });
+      if (mounted) {
+        setState(() {
+          _customerSuggestions = [];
+          _customerSuggestionItems = [];
+          _activeCustomerRowIndex = null;
+          _toggleFullScreenSuggestions(type: 'customer', show: false);
+        });
+      }
     }
   }
 
@@ -1748,39 +1777,65 @@ class _BoxScreenState extends State<BoxScreen> {
   void _updateSupplierSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][2].text;
     if (query.length >= 1 && accountTypeValues[rowIndex] == 'مورد') {
-      final suggestions =
-          await getEnhancedSuggestions(_supplierIndexService, query);
-      setState(() {
-        _supplierSuggestions = suggestions;
-        _activeSupplierRowIndex = rowIndex;
-        _toggleFullScreenSuggestions(
-            type: 'supplier', show: suggestions.isNotEmpty);
-      });
+      final allWithNumbers =
+          await _supplierIndexService.getAllSuppliersWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
+      if (mounted) {
+        setState(() {
+          _supplierSuggestionItems = displaySuggestions;
+          _supplierSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
+          _activeSupplierRowIndex = rowIndex;
+          _toggleFullScreenSuggestions(
+              type: 'supplier', show: displaySuggestions.isNotEmpty);
+        });
+      }
     } else {
-      // إخفاء الاقتراحات إذا كان الحقل فارغاً أو نوع الحساب ليس مورد
-      setState(() {
-        _supplierSuggestions = [];
-        _activeSupplierRowIndex = null;
-      });
+      if (mounted) {
+        setState(() {
+          _supplierSuggestions = [];
+          _supplierSuggestionItems = [];
+          _activeSupplierRowIndex = null;
+          _toggleFullScreenSuggestions(type: 'supplier', show: false);
+        });
+      }
     }
   }
 
-  // اختيار اقتراح للزبون
   void _selectCustomerSuggestion(String suggestion, int rowIndex) {
     setState(() {
       _customerSuggestions = [];
+      _customerSuggestionItems = [];
       _activeCustomerRowIndex = null;
       _showFullScreenSuggestions = false;
       _currentSuggestionType = '';
     });
 
-    rowControllers[rowIndex][2].text = suggestion;
+    final actualName = _extractNameFromSuggestion(suggestion);
+    rowControllers[rowIndex][2].text = actualName;
     _hasUnsavedChanges = true;
 
-    // تحديث تاريخ البدء إذا كان فارغاً
-    if (suggestion.trim().length > 1) {
+    if (actualName.trim().length > 1) {
       _customerIndexService.saveCustomer(
-        suggestion.trim(),
+        actualName.trim(),
         startDate: widget.selectedDate,
       );
     }
@@ -1789,28 +1844,27 @@ class _BoxScreenState extends State<BoxScreen> {
 
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) {
-        // *** التعديل هنا: الانتقال إلى حقل الملاحظات (البيان) ***
         FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][3]);
       }
     });
   }
 
-  // اختيار اقتراح للمورد
   void _selectSupplierSuggestion(String suggestion, int rowIndex) {
     setState(() {
       _supplierSuggestions = [];
+      _supplierSuggestionItems = [];
       _activeSupplierRowIndex = null;
       _showFullScreenSuggestions = false;
       _currentSuggestionType = '';
     });
 
-    rowControllers[rowIndex][2].text = suggestion;
+    final actualName = _extractNameFromSuggestion(suggestion);
+    rowControllers[rowIndex][2].text = actualName;
     _hasUnsavedChanges = true;
 
-    // تحديث تاريخ البدء إذا كان فارغاً
-    if (suggestion.trim().length > 1) {
+    if (actualName.trim().length > 1) {
       _supplierIndexService.saveSupplier(
-        suggestion.trim(),
+        actualName.trim(),
         startDate: widget.selectedDate,
       );
     }
@@ -1819,7 +1873,6 @@ class _BoxScreenState extends State<BoxScreen> {
 
     Future.delayed(const Duration(milliseconds: 50), () {
       if (mounted) {
-        // *** التعديل هنا: الانتقال إلى حقل الملاحظات (البيان) ***
         FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][3]);
       }
     });
@@ -1855,12 +1908,12 @@ class _BoxScreenState extends State<BoxScreen> {
     }
   }
 
-  List<String> _getSuggestionsByType() {
+  List<SuggestionItem> _getSuggestionsByType() {
     switch (_currentSuggestionType) {
       case 'supplier':
-        return _supplierSuggestions;
+        return _supplierSuggestionItems;
       case 'customer':
-        return _customerSuggestions;
+        return _customerSuggestionItems;
       default:
         return [];
     }
@@ -2453,6 +2506,14 @@ class _BoxScreenState extends State<BoxScreen> {
         curve: Curves.easeOut,
       );
     }
+  }
+
+  String _extractNameFromSuggestion(String suggestion) {
+    final dotIndex = suggestion.indexOf('. ');
+    if (dotIndex != -1 && dotIndex + 2 < suggestion.length) {
+      return suggestion.substring(dotIndex + 2).trim();
+    }
+    return suggestion.trim();
   }
 }
 

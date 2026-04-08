@@ -1,5 +1,3 @@
-// daily_movement_screen.dart - معدل بالكامل
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/store_db_service.dart';
@@ -9,6 +7,7 @@ import 'daily_movement/box_screen.dart';
 import 'bait_screen.dart';
 import 'daily_movement/invoice_type_selection_screen.dart';
 import 'preferences_screen.dart';
+import 'package:flutter/material.dart' hide AnimatedIcon;
 
 class DailyMovementScreen extends StatefulWidget {
   final String selectedDate;
@@ -287,7 +286,6 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
     required int index,
     required VoidCallback onTap,
   }) {
-    // ✅ hasFocus يعتمد على _focusedIndex وليس على focusNode.hasFocus
     final hasFocus = _focusedIndex == index;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
@@ -312,7 +310,7 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
               ),
               borderRadius: BorderRadius.circular(20),
               border: hasFocus
-                  ? Border.all(color: Colors.white, width: 4)
+                  ? Border.all(color: Colors.black, width: 6)
                   : Border.all(color: Colors.transparent, width: 4),
               boxShadow: hasFocus
                   ? [
@@ -334,10 +332,18 @@ class _DailyMovementScreenState extends State<DailyMovementScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  icon,
-                  size: hasFocus ? 52 : 42,
-                  color: Colors.white,
+                AnimatedRotation(
+                  turns: hasFocus ? 0.05 : 0.0,
+                  duration: const Duration(milliseconds: 300),
+                  child: AnimatedScale(
+                    scale: hasFocus ? 1.2 : 1.0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      icon,
+                      size: hasFocus ? 52 : 42,
+                      color: hasFocus ? Colors.yellowAccent : Colors.white,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(

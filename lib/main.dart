@@ -1,8 +1,6 @@
-/*
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:window_manager/window_manager.dart';
 import 'screens/login_screen.dart';
 import 'screens/settings_screen.dart';
 
@@ -13,15 +11,6 @@ void main() async {
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
-
-  // إعدادات النافذة لنظام Windows
-  await windowManager.ensureInitialized();
-  await windowManager
-      .setTitleBarStyle(TitleBarStyle.hidden); // إخفاء شريط العنوان والأزرار
-  await windowManager.setFullScreen(true); // ملء الشاشة بالكامل
-  await windowManager.setResizable(false); // منع تغيير الحجم
-  await windowManager.setMinimizable(false); // منع التصغير
-  await windowManager.setMaximizable(false); // منع التكبير
 
   runApp(const MyApp());
 }
@@ -154,8 +143,7 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
-
-*/
+/*
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -176,8 +164,7 @@ void main() async {
 
   // إعدادات النافذة
   await windowManager.ensureInitialized();
-  await windowManager
-      .setTitleBarStyle(TitleBarStyle.hidden); // إخفاء شريط العنوان والأزرار
+  await windowManager.setTitleBarStyle(TitleBarStyle.hidden); // إخفاء شريط العنوان والأزرار
   await windowManager.setFullScreen(true); // ملء الشاشة بالكامل
   await windowManager.setResizable(false); // منع تغيير الحجم
   await windowManager.setMinimizable(false); // منع التصغير
@@ -331,3 +318,4 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+*/

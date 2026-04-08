@@ -10,7 +10,6 @@ import '../../services/supplier_index_service.dart';
 import '../../widgets/table_builder.dart' as TableBuilder;
 import '../../widgets/table_components.dart' as TableComponents;
 import '../../widgets/common_dialogs.dart' as CommonDialogs;
-import '../../services/enhanced_index_service.dart';
 import '../../widgets/suggestions_banner.dart';
 import '../../widgets/exit_button.dart';
 import '../../services/supplier_balance_tracker.dart';
@@ -118,6 +117,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   FocusNode? _addButtonFocusNode;
   int _currentFocusRow = -1;
   int _currentFocusCol = -1;
+
+  List<SuggestionItem> _materialSuggestionItems = [];
+  List<SuggestionItem> _packagingSuggestionItems = [];
+  List<SuggestionItem> _supplierSuggestionItems = [];
 
   @override
   void initState() {
@@ -416,20 +419,46 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   void _updateMaterialSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][1].text;
     if (query.length >= 1) {
-      final suggestions =
-          await getEnhancedSuggestions(_materialIndexService, query);
-      setState(() {
-        _materialSuggestions = suggestions;
-        _activeMaterialRowIndex = rowIndex;
-        _toggleFullScreenSuggestions(
-            type: 'material', show: suggestions.isNotEmpty);
-      });
+      final allWithNumbers =
+          await _materialIndexService.getAllMaterialsWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
+      if (mounted) {
+        setState(() {
+          _materialSuggestionItems = displaySuggestions;
+          _materialSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
+          _activeMaterialRowIndex = rowIndex;
+          _toggleFullScreenSuggestions(
+              type: 'material', show: displaySuggestions.isNotEmpty);
+        });
+      }
     } else {
-      // إخفاء الاقتراحات إذا كان الحقل فارغاً
-      setState(() {
-        _materialSuggestions = [];
-        _activeMaterialRowIndex = null;
-      });
+      if (mounted) {
+        setState(() {
+          _materialSuggestions = [];
+          _materialSuggestionItems = [];
+          _activeMaterialRowIndex = null;
+          _toggleFullScreenSuggestions(type: 'material', show: false);
+        });
+      }
     }
   }
 
@@ -437,20 +466,46 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   void _updatePackagingSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][4].text;
     if (query.length >= 1) {
-      final suggestions =
-          await getEnhancedSuggestions(_packagingIndexService, query);
-      setState(() {
-        _packagingSuggestions = suggestions;
-        _activePackagingRowIndex = rowIndex;
-        _toggleFullScreenSuggestions(
-            type: 'packaging', show: suggestions.isNotEmpty);
-      });
+      final allWithNumbers =
+          await _packagingIndexService.getAllPackagingsWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
+      if (mounted) {
+        setState(() {
+          _packagingSuggestionItems = displaySuggestions;
+          _packagingSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
+          _activePackagingRowIndex = rowIndex;
+          _toggleFullScreenSuggestions(
+              type: 'packaging', show: displaySuggestions.isNotEmpty);
+        });
+      }
     } else {
-      // إخفاء الاقتراحات إذا كان الحقل فارغاً
-      setState(() {
-        _packagingSuggestions = [];
-        _activePackagingRowIndex = null;
-      });
+      if (mounted) {
+        setState(() {
+          _packagingSuggestions = [];
+          _packagingSuggestionItems = [];
+          _activePackagingRowIndex = null;
+          _toggleFullScreenSuggestions(type: 'packaging', show: false);
+        });
+      }
     }
   }
 
@@ -458,30 +513,54 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   void _updateSupplierSuggestions(int rowIndex) async {
     final query = rowControllers[rowIndex][2].text;
     if (query.length >= 1) {
-      final suggestions =
-          await getEnhancedSuggestions(_supplierIndexService, query);
-      setState(() {
-        _supplierSuggestions = suggestions;
-        _activeSupplierRowIndex = rowIndex;
-        _toggleFullScreenSuggestions(
-            type: 'supplier', show: suggestions.isNotEmpty);
-      });
+      final allWithNumbers =
+          await _supplierIndexService.getAllSuppliersWithNumbers();
+      final normalizedQuery = query.toLowerCase().trim();
+
+      List<SuggestionItem> displaySuggestions = [];
+
+      if (RegExp(r'^\d+$').hasMatch(query.trim())) {
+        final int? queryNumber = int.tryParse(query.trim());
+        if (queryNumber != null && allWithNumbers.containsKey(queryNumber)) {
+          displaySuggestions = [
+            SuggestionItem(
+                number: queryNumber, name: allWithNumbers[queryNumber]!)
+          ];
+        }
+      } else {
+        displaySuggestions = allWithNumbers.entries
+            .where((e) => e.value.toLowerCase().contains(normalizedQuery))
+            .map((e) => SuggestionItem(number: e.key, name: e.value))
+            .toList();
+      }
+
+      if (mounted) {
+        setState(() {
+          _supplierSuggestionItems = displaySuggestions;
+          _supplierSuggestions =
+              displaySuggestions.map((e) => e.displayName).toList();
+          _activeSupplierRowIndex = rowIndex;
+          _toggleFullScreenSuggestions(
+              type: 'supplier', show: displaySuggestions.isNotEmpty);
+        });
+      }
     } else {
-      // إخفاء الاقتراحات إذا كان الحقل فارغاً
-      setState(() {
-        _supplierSuggestions = [];
-        _activeSupplierRowIndex = null;
-      });
+      if (mounted) {
+        setState(() {
+          _supplierSuggestions = [];
+          _supplierSuggestionItems = [];
+          _activeSupplierRowIndex = null;
+          _toggleFullScreenSuggestions(type: 'supplier', show: false);
+        });
+      }
     }
   }
 
 // اختيار اقتراح للمادة - معدلة تماماً
   void _selectMaterialSuggestion(String suggestion, int rowIndex) {
-    // إخفاء الاقتراحات أولاً وفوراً
     _hideAllSuggestionsImmediately();
-
-    // ثم تعيين النص
-    rowControllers[rowIndex][1].text = suggestion;
+    final actualName = _extractNameFromSuggestion(suggestion); // ✅
+    rowControllers[rowIndex][1].text = actualName;
     _hasUnsavedChanges = true;
 
     // حفظ المادة في الفهرس إذا لم تكن موجودة (مع شرط الطول)
@@ -499,11 +578,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
 // اختيار اقتراح للعبوة - معدلة تماماً
   void _selectPackagingSuggestion(String suggestion, int rowIndex) {
-    // إخفاء الاقتراحات أولاً وفوراً
     _hideAllSuggestionsImmediately();
-
-    // ثم تعيين النص
-    rowControllers[rowIndex][4].text = suggestion;
+    final actualName = _extractNameFromSuggestion(suggestion); // ✅
+    rowControllers[rowIndex][4].text = actualName;
     _hasUnsavedChanges = true;
 
     // حفظ العبوة في الفهرس إذا لم تكن موجودة (مع شرط الطول)
@@ -521,11 +598,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
 // اختيار اقتراح للمورد (العائدية) - معدلة تماماً
   void _selectSupplierSuggestion(String suggestion, int rowIndex) {
-    // إخفاء الاقتراحات أولاً وفوراً
     _hideAllSuggestionsImmediately();
-
-    // ثم تعيين النص
-    rowControllers[rowIndex][2].text = suggestion;
+    final actualName = _extractNameFromSuggestion(suggestion); // ✅
+    rowControllers[rowIndex][2].text = actualName;
     _hasUnsavedChanges = true;
 
     // حفظ المورد في الفهرس إذا لم يكن موجوداً (مع شرط الطول)
@@ -1582,8 +1657,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   Future<void> _saveCurrentRecord({bool silent = false}) async {
     if (_isSaving) return;
 
-    setState(() => _isSaving = true);
-
+    if (mounted) {
+      setState(() => _isSaving = true);
+    }
     // 1. تجميع السجلات الحالية من الواجهة التي تخص البائع الحالي فقط
     final List<Purchase> currentSellerPurchasesFromUI = [];
     for (int i = 0; i < rowControllers.length; i++) {
@@ -1759,15 +1835,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     }
   }
 
-  List<String> _getSuggestionsByType() {
+  List<SuggestionItem> _getSuggestionsByType() {
     switch (_currentSuggestionType) {
       case 'material':
-        return _materialSuggestions;
+        return _materialSuggestionItems;
       case 'packaging':
-        return _packagingSuggestions;
+        return _packagingSuggestionItems;
       case 'supplier':
-        return _supplierSuggestions;
-
+        return _supplierSuggestionItems;
       default:
         return [];
     }
@@ -2015,6 +2090,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
         curve: Curves.easeOut,
       );
     }
+  }
+
+  String _extractNameFromSuggestion(String suggestion) {
+    final dotIndex = suggestion.indexOf('. ');
+    if (dotIndex != -1 && dotIndex + 2 < suggestion.length) {
+      return suggestion.substring(dotIndex + 2).trim();
+    }
+    return suggestion.trim();
   }
 }
 

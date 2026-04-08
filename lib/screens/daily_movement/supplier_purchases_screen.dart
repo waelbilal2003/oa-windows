@@ -1,10 +1,8 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
-import 'package:path_provider/path_provider.dart';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
 
 import '../../models/purchase_model.dart';
 import '../../services/invoices_service.dart';
@@ -12,6 +10,7 @@ import '../../services/supplier_index_service.dart';
 import '../../widgets/date_range_filter.dart';
 import '../../widgets/exit_button.dart';
 import 'package:flutter/services.dart';
+import '../../widgets/pdf_action_menu.dart';
 
 class SupplierPurchasesScreen extends StatefulWidget {
   final String selectedDate;
@@ -33,7 +32,7 @@ class SupplierPurchasesScreen extends StatefulWidget {
 class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
   final InvoicesService _invoicesService = InvoicesService();
   final SupplierIndexService _supplierIndexService = SupplierIndexService();
-  late Future<List<Purchase>> _purchasesDataFuture;
+  Future<List<Purchase>> _purchasesDataFuture = Future.value([]);
   double? _supplierBalance;
 
   DateTime? _filterFrom;
@@ -120,7 +119,7 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
     });
   }
 
-  Future<void> _generateAndSharePdf(List<Purchase> items) async {
+  Future<Uint8List> _generatePdfBytes(List<Purchase> items) async {
     final pdf = pw.Document();
 
     var arabicFont;
@@ -204,27 +203,27 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                   pw.Table(
                     border: pw.TableBorder.all(color: borderColor, width: 0.5),
                     columnWidths: {
-                      0: const pw.FlexColumnWidth(2),
-                      1: const pw.FlexColumnWidth(3),
-                      2: const pw.FlexColumnWidth(2),
-                      3: const pw.FlexColumnWidth(3),
-                      4: const pw.FlexColumnWidth(2),
-                      5: const pw.FlexColumnWidth(2),
-                      6: const pw.FlexColumnWidth(2),
-                      7: const pw.FlexColumnWidth(3),
+                      0: const pw.FlexColumnWidth(3), // الإجمالي
+                      1: const pw.FlexColumnWidth(2), // السعر
+                      2: const pw.FlexColumnWidth(2), // الصافي
+                      3: const pw.FlexColumnWidth(2), // القائم
+                      4: const pw.FlexColumnWidth(3), // العبوة
+                      5: const pw.FlexColumnWidth(2), // العدد
+                      6: const pw.FlexColumnWidth(3), // المادة
+                      7: const pw.FlexColumnWidth(2), // التاريخ
                     },
                     children: [
                       pw.TableRow(
                         decoration: pw.BoxDecoration(color: headerColor),
                         children: [
-                          _buildPdfHeaderCell('التاريخ', headerTextColor),
-                          _buildPdfHeaderCell('المادة', headerTextColor),
-                          _buildPdfHeaderCell('العدد', headerTextColor),
-                          _buildPdfHeaderCell('العبوة', headerTextColor),
-                          _buildPdfHeaderCell('القائم', headerTextColor),
-                          _buildPdfHeaderCell('الصافي', headerTextColor),
-                          _buildPdfHeaderCell('السعر', headerTextColor),
                           _buildPdfHeaderCell('الإجمالي', headerTextColor),
+                          _buildPdfHeaderCell('السعر', headerTextColor),
+                          _buildPdfHeaderCell('الصافي', headerTextColor),
+                          _buildPdfHeaderCell('القائم', headerTextColor),
+                          _buildPdfHeaderCell('العبوة', headerTextColor),
+                          _buildPdfHeaderCell('العدد', headerTextColor),
+                          _buildPdfHeaderCell('المادة', headerTextColor),
+                          _buildPdfHeaderCell('التاريخ', headerTextColor),
                         ],
                       ),
                       ...items.asMap().entries.map((entry) {
@@ -235,33 +234,33 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                         return pw.TableRow(
                           decoration: pw.BoxDecoration(color: color),
                           children: [
-                            _buildPdfCell(item.date),
-                            _buildPdfCell(item.material),
-                            _buildPdfCell(item.count),
-                            _buildPdfCell(item.packaging),
-                            _buildPdfCell(item.standing),
-                            _buildPdfCell(item.net),
-                            _buildPdfCell(item.price),
                             _buildPdfCell(item.total,
                                 textColor: grandTotalColor, isBold: true),
+                            _buildPdfCell(item.price),
+                            _buildPdfCell(item.net),
+                            _buildPdfCell(item.standing),
+                            _buildPdfCell(item.packaging),
+                            _buildPdfCell(item.count),
+                            _buildPdfCell(item.material),
+                            _buildPdfCell(item.date),
                           ],
                         );
                       }).toList(),
                       pw.TableRow(
                         decoration: pw.BoxDecoration(color: totalRowColor),
                         children: [
-                          _buildPdfCell(''),
-                          _buildPdfCell('المجموع', isBold: true),
-                          _buildPdfCell(totalCount.toStringAsFixed(0),
-                              isBold: true),
-                          _buildPdfCell(''),
-                          _buildPdfCell(totalStanding.toStringAsFixed(2),
-                              isBold: true),
-                          _buildPdfCell(totalNet.toStringAsFixed(2),
-                              isBold: true),
-                          _buildPdfCell(''),
                           _buildPdfCell(totalGrand.toStringAsFixed(2),
                               textColor: grandTotalColor, isBold: true),
+                          _buildPdfCell(''),
+                          _buildPdfCell(totalNet.toStringAsFixed(2),
+                              isBold: true),
+                          _buildPdfCell(totalStanding.toStringAsFixed(2),
+                              isBold: true),
+                          _buildPdfCell(''),
+                          _buildPdfCell(totalCount.toStringAsFixed(0),
+                              isBold: true),
+                          _buildPdfCell('المجموع', isBold: true),
+                          _buildPdfCell(''),
                         ],
                       ),
                     ],
@@ -295,12 +294,7 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
       ),
     );
 
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/مشتريات_${widget.supplierName}.pdf");
-    await file.writeAsBytes(await pdf.save());
-
-    await Share.shareXFiles([XFile(file.path)],
-        text: 'مشتريات المورد ${widget.supplierName} - ${filterDesc}');
+    return await pdf.save();
   }
 
   pw.Widget _buildPdfHeaderCell(String text, PdfColor color) {
@@ -444,18 +438,17 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
                 },
                 color: Colors.white,
               ),
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf),
-                tooltip: 'مشاركة PDF',
-                onPressed: () async {
-                  if (_filteredItems.isNotEmpty) {
-                    _generateAndSharePdf(_filteredItems);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('لا توجد بيانات لمشاركتها')),
-                    );
-                  }
-                },
+              PdfActionMenu(
+                getItems: () async => _filteredItems,
+                generatePdfCallback: (items) =>
+                    _generatePdfBytes(items as List<Purchase>),
+                supplierOrCustomerName: widget.supplierName,
+                filterDesc:
+                    'الفترة: ${_filterFrom != null || _filterTo != null ? "من ${_filterFrom?.year}/${_filterFrom?.month}/${_filterFrom?.day} إلى ${_filterTo?.year}/${_filterTo?.month}/${_filterTo?.day}" : "حتى ${widget.selectedDate}"}',
+                balance: _supplierBalance,
+                storeName: widget.storeName,
+                selectedDate: widget.selectedDate,
+                type: 'supplier',
               ),
             ],
             bottom: PreferredSize(
