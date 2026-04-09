@@ -1066,12 +1066,11 @@ class _BoxScreenState extends State<BoxScreen> {
         }
       }
 
-      _saveCurrentRecord(silent: true, reloadAfterSave: false).then((_) {
-        if (mounted) {
-          _fetchAndCalculateBalance(rowIndex);
-        }
-      });
+      // استدعاء دالة حساب الرصيد للعرض أولاً لضمان عدم المضاعفة
+      _fetchAndCalculateBalance(rowIndex);
 
+      // ثم حفظ السجل بعد أن تم حساب وعرض الباقي بشكل صحيح
+      _saveCurrentRecord(silent: true, reloadAfterSave: false);
       // ✅ فقط إذا لم يتم التعامل مع الرقم وكان النص طويلاً، نقوم بحفظه في الفهرس
       if (!wasNumberHandled &&
           trimmedValue.isNotEmpty &&

@@ -576,13 +576,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 // اختيار اقتراح للعبوة - معدلة تماماً
   void _selectPackagingSuggestion(String suggestion, int rowIndex) {
     _hideAllSuggestionsImmediately();
-    final actualName = _extractNameFromSuggestion(suggestion); // ✅
+    final actualName =
+        _extractNameFromSuggestion(suggestion); // ✅ تستخرج "سمك" فقط
     rowControllers[rowIndex][4].text = actualName;
     _hasUnsavedChanges = true;
 
-    // حفظ العبوة في الفهرس إذا لم تكن موجودة (مع شرط الطول)
-    if (suggestion.trim().length > 1) {
-      _savePackagingToIndex(suggestion);
+    // ✅ حفظ العبوة في الفهرس باستخدام actualName وليس suggestion
+    if (actualName.trim().length > 1) {
+      _savePackagingToIndex(actualName); // ✅ كان السابق: suggestion
     }
 
     // نقل التركيز إلى الحقل التالي بعد تأخير بسيط
@@ -596,13 +597,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 // اختيار اقتراح للمورد (العائدية) - معدلة تماماً
   void _selectSupplierSuggestion(String suggestion, int rowIndex) {
     _hideAllSuggestionsImmediately();
-    final actualName = _extractNameFromSuggestion(suggestion); // ✅
+    final actualName =
+        _extractNameFromSuggestion(suggestion); // ✅ تستخرج الاسم فقط
     rowControllers[rowIndex][2].text = actualName;
     _hasUnsavedChanges = true;
 
-    // حفظ المورد في الفهرس إذا لم يكن موجوداً (مع شرط الطول)
-    if (suggestion.trim().length > 1) {
-      _saveSupplierToIndex(suggestion);
+    // ✅ حفظ المورد في الفهرس باستخدام actualName وليس suggestion
+    if (actualName.trim().length > 1) {
+      _saveSupplierToIndex(actualName); // ✅ كان السابق: suggestion
     }
 
     // نقل التركيز إلى الحقل التالي بعد تأخير بسيط
