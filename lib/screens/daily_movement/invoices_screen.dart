@@ -263,8 +263,8 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
               ),
               PdfActionMenu(
                 getItems: () async => _filteredItems,
-                generatePdfCallback: (items) =>
-                    _generatePdfBytes(items as List<InvoiceItem>),
+                generatePdfCallback: (items) => _generatePdfBytes(
+                    items as List<InvoiceItem>, widget.selectedDate),
                 supplierOrCustomerName: widget.customerName,
                 filterDesc:
                     'الفترة: ${_filterFrom != null || _filterTo != null ? "من ${_filterFrom?.year}/${_filterFrom?.month}/${_filterFrom?.day} إلى ${_filterTo?.year}/${_filterTo?.month}/${_filterTo?.day}" : "حتى ${widget.selectedDate}"}',
@@ -509,7 +509,8 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     );
   }
 
-  Future<Uint8List> _generatePdfBytes(List<InvoiceItem> items) async {
+  Future<Uint8List> _generatePdfBytes(
+      List<InvoiceItem> items, String selectedDate) async {
     final pdf = pw.Document();
 
     var arabicFont;

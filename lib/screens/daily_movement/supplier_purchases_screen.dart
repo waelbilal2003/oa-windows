@@ -119,7 +119,8 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
     });
   }
 
-  Future<Uint8List> _generatePdfBytes(List<Purchase> items) async {
+  Future<Uint8List> _generatePdfBytes(
+      List<Purchase> items, String selectedDate) async {
     final pdf = pw.Document();
 
     var arabicFont;
@@ -440,8 +441,8 @@ class _SupplierPurchasesScreenState extends State<SupplierPurchasesScreen> {
               ),
               PdfActionMenu(
                 getItems: () async => _filteredItems,
-                generatePdfCallback: (items) =>
-                    _generatePdfBytes(items as List<Purchase>),
+                generatePdfCallback: (items) => _generatePdfBytes(
+                    items as List<Purchase>, widget.selectedDate),
                 supplierOrCustomerName: widget.supplierName,
                 filterDesc:
                     'الفترة: ${_filterFrom != null || _filterTo != null ? "من ${_filterFrom?.year}/${_filterFrom?.month}/${_filterFrom?.day} إلى ${_filterTo?.year}/${_filterTo?.month}/${_filterTo?.day}" : "حتى ${widget.selectedDate}"}',

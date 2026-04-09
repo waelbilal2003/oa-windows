@@ -9,13 +9,12 @@ import '../../services/supplier_index_service.dart';
 import '../../widgets/suggestions_banner.dart';
 import '../../widgets/exit_button.dart';
 import '../../services/app_settings_service.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
 import '../../services/sales_storage_service.dart';
 import '../../services/purchase_storage_service.dart';
+import 'dart:typed_data';
+import '../../widgets/pdf_action_menu.dart';
 
 List<SuggestionItem> _customerSuggestionItems = [];
 List<SuggestionItem> _supplierSuggestionItems = [];
@@ -997,7 +996,7 @@ class _BoxScreenState extends State<BoxScreen> {
     }
   }
 
-  void _handleFieldSubmitted(String value, int rowIndex, int colIndex) {
+  void _handleFieldSubmitted(String value, int rowIndex, int colIndex) async {
     if (!_canEditRow(rowIndex)) {
       return;
     }
@@ -1016,18 +1015,55 @@ class _BoxScreenState extends State<BoxScreen> {
       _showAccountTypeDialog(rowIndex);
     } else if (colIndex == 2) {
       // الحساب
-      if (accountTypeValues[rowIndex] == 'زبون' &&
-          _customerSuggestions.isNotEmpty) {
-        _selectCustomerSuggestion(_customerSuggestions[0], rowIndex);
-        _saveCurrentRecord(silent: true, reloadAfterSave: false);
-        return;
+      final String accountType = accountTypeValues[rowIndex];
+      final String trimmedValue = value.trim();
+
+      // متغير لتتبع ما إذا تم التعامل مع الرقم بنجاح
+      bool wasNumberHandled = false;
+
+      // ✅ التحقق إذا كان المدخل رقماً (رقم الزبون أو المورد)
+      if (RegExp(r'^\d+$').hasMatch(trimmedValue)) {
+        final int? accountNumber = int.tryParse(trimmedValue);
+        if (accountNumber != null) {
+          if (accountType == 'زبون') {
+            final allCustomers =
+                await _customerIndexService.getAllCustomersWithNumbers();
+            if (allCustomers.containsKey(accountNumber)) {
+              rowControllers[rowIndex][2].text = allCustomers[accountNumber]!;
+              _hasUnsavedChanges = true;
+              wasNumberHandled = true; // ✅ تم التعامل مع الرقم بنجاح
+            } else {
+              _showInlineWarning(
+                  rowIndex, 'لم يتم العثور على زبون بهذا الرقم: $trimmedValue');
+            }
+          } else if (accountType == 'مورد') {
+            final allSuppliers =
+                await _supplierIndexService.getAllSuppliersWithNumbers();
+            if (allSuppliers.containsKey(accountNumber)) {
+              rowControllers[rowIndex][2].text = allSuppliers[accountNumber]!;
+              _hasUnsavedChanges = true;
+              wasNumberHandled = true; // ✅ تم التعامل مع الرقم بنجاح
+            } else {
+              _showInlineWarning(
+                  rowIndex, 'لم يتم العثور على مورد بهذا الرقم: $trimmedValue');
+            }
+          }
+        }
       }
 
-      if (accountTypeValues[rowIndex] == 'مورد' &&
-          _supplierSuggestions.isNotEmpty) {
-        _selectSupplierSuggestion(_supplierSuggestions[0], rowIndex);
-        _saveCurrentRecord(silent: true, reloadAfterSave: false);
-        return;
+      // ✅ إذا لم يتم التعامل مع الرقم (أي لم يكن رقماً أو لم يوجد)، نتعامل مع الاقتراحات
+      if (!wasNumberHandled) {
+        if (accountType == 'زبون' && _customerSuggestions.isNotEmpty) {
+          _selectCustomerSuggestion(_customerSuggestions[0], rowIndex);
+          _saveCurrentRecord(silent: true, reloadAfterSave: false);
+          return;
+        }
+
+        if (accountType == 'مورد' && _supplierSuggestions.isNotEmpty) {
+          _selectSupplierSuggestion(_supplierSuggestions[0], rowIndex);
+          _saveCurrentRecord(silent: true, reloadAfterSave: false);
+          return;
+        }
       }
 
       _saveCurrentRecord(silent: true, reloadAfterSave: false).then((_) {
@@ -1036,18 +1072,22 @@ class _BoxScreenState extends State<BoxScreen> {
         }
       });
 
-      if (value.trim().isNotEmpty && value.trim().length > 1) {
-        if (accountTypeValues[rowIndex] == 'زبون') {
-          _saveCustomerToIndex(value);
-        } else if (accountTypeValues[rowIndex] == 'مورد') {
-          _saveSupplierToIndex(value);
+      // ✅ فقط إذا لم يتم التعامل مع الرقم وكان النص طويلاً، نقوم بحفظه في الفهرس
+      if (!wasNumberHandled &&
+          trimmedValue.isNotEmpty &&
+          trimmedValue.length > 1) {
+        if (accountType == 'زبون') {
+          _saveCustomerToIndex(trimmedValue);
+        } else if (accountType == 'مورد') {
+          _saveSupplierToIndex(trimmedValue);
         }
       }
+
       _currentFocusRow = rowIndex;
       _currentFocusCol = 3;
       FocusScope.of(context).requestFocus(rowFocusNodes[rowIndex][3]);
     } else if (colIndex == 3) {
-      // ملاحظات - إنشاء صف جديد والتركيز على حقل المقبوض (بنفس آلية زر الإضافة)
+      // ملاحظات - إنشاء صف جديد
       _addNewRow();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && rowFocusNodes.isNotEmpty) {
@@ -1059,6 +1099,18 @@ class _BoxScreenState extends State<BoxScreen> {
           _adjustScrollPosition(newRowIndex);
         }
       });
+    }
+  }
+
+  void _showInlineWarning(int rowIndex, String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -1399,13 +1451,16 @@ class _BoxScreenState extends State<BoxScreen> {
               ),
             Row(
               children: [
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf, size: 60),
-                  tooltip: 'تصدير PDF',
-                  onPressed: () => _generateAndSharePdf(),
-                  padding: const EdgeInsets.all(8),
-                  constraints:
-                      const BoxConstraints(minWidth: 36, minHeight: 36),
+                PdfActionMenu(
+                  type: 'sales',
+                  supplierOrCustomerName: 'المبيعات',
+                  filterDesc: widget.selectedDate,
+                  balance: null,
+                  storeName: widget.storeName,
+                  selectedDate: widget.selectedDate,
+                  iconSize: 60, // <-- حجم أكبر
+                  getItems: () async => rowControllers,
+                  generatePdfCallback: (items) => _generatePdfBytes(items),
                 ),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.calendar_month, size: 60),
@@ -1829,11 +1884,13 @@ class _BoxScreenState extends State<BoxScreen> {
       _currentSuggestionType = '';
     });
 
-    final actualName = _extractNameFromSuggestion(suggestion);
+    final actualName =
+        _extractNameFromSuggestion(suggestion); // ✅ تستخرج الاسم فقط
     rowControllers[rowIndex][2].text = actualName;
     _hasUnsavedChanges = true;
 
     if (actualName.trim().length > 1) {
+      // ✅ تحفظ الاسم وليس "رقم. اسم"
       _customerIndexService.saveCustomer(
         actualName.trim(),
         startDate: widget.selectedDate,
@@ -1858,11 +1915,13 @@ class _BoxScreenState extends State<BoxScreen> {
       _currentSuggestionType = '';
     });
 
-    final actualName = _extractNameFromSuggestion(suggestion);
+    final actualName =
+        _extractNameFromSuggestion(suggestion); // ✅ تستخرج الاسم فقط
     rowControllers[rowIndex][2].text = actualName;
     _hasUnsavedChanges = true;
 
     if (actualName.trim().length > 1) {
+      // ✅ تحفظ الاسم وليس "رقم. اسم"
       _supplierIndexService.saveSupplier(
         actualName.trim(),
         startDate: widget.selectedDate,
@@ -2257,131 +2316,6 @@ class _BoxScreenState extends State<BoxScreen> {
     );
   }
 
-  // --- دالة توليد PDF والمشاركة (BoxScreen) ---
-  Future<void> _generateAndSharePdf() async {
-    try {
-      final pdf = pw.Document();
-
-      var arabicFont;
-      try {
-        final fontData =
-            await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
-        arabicFont = pw.Font.ttf(fontData);
-      } catch (e) {
-        arabicFont = pw.Font.courier();
-      }
-
-      final PdfColor headerColor = PdfColor.fromInt(0xFFF3A30D);
-      final PdfColor headerTextColor = PdfColors.white;
-      final PdfColor rowEvenColor = PdfColors.white;
-      final PdfColor rowOddColor = PdfColor.fromInt(0xFFFFF3E0);
-      final PdfColor borderColor = PdfColor.fromInt(0xFFE0E0E0);
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          textDirection: pw.TextDirection.rtl,
-          theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFont),
-          build: (pw.Context context) {
-            return [
-              pw.Directionality(
-                textDirection: pw.TextDirection.rtl,
-                child: pw.Column(
-                  children: [
-                    pw.Center(
-                        child: pw.Text('يومية صندوق رقم /$serialNumber/',
-                            style: pw.TextStyle(
-                                fontSize: 16, fontWeight: pw.FontWeight.bold))),
-                    pw.Center(
-                        child: pw.Text(
-                            'تاريخ ${widget.selectedDate} - البائع ${widget.sellerName}',
-                            style: const pw.TextStyle(
-                                fontSize: 16, color: PdfColors.grey700))),
-                    pw.SizedBox(height: 10),
-                    pw.Table(
-                      border:
-                          pw.TableBorder.all(color: borderColor, width: 0.5),
-                      columnWidths: {
-                        0: const pw.FlexColumnWidth(3), // ملاحظات
-                        1: const pw.FlexColumnWidth(4), // الحساب
-                        2: const pw.FlexColumnWidth(2), // مدفوع
-                        3: const pw.FlexColumnWidth(2), // مقبوض
-                      },
-                      children: [
-                        pw.TableRow(
-                          decoration: pw.BoxDecoration(color: headerColor),
-                          children: [
-                            _buildPdfHeaderCell('ملاحظات', headerTextColor),
-                            _buildPdfHeaderCell('الحساب', headerTextColor),
-                            _buildPdfHeaderCell('مدفوع', headerTextColor),
-                            _buildPdfHeaderCell('مقبوض', headerTextColor),
-                          ],
-                        ),
-                        ...rowControllers.asMap().entries.map((entry) {
-                          final index = entry.key;
-                          final controllers = entry.value;
-                          if (controllers[0].text.isEmpty &&
-                              controllers[1].text.isEmpty &&
-                              controllers[2].text.isEmpty) {
-                            return pw.TableRow(
-                                children: List.filled(4, pw.SizedBox()));
-                          }
-                          final color =
-                              index % 2 == 0 ? rowEvenColor : rowOddColor;
-                          String accountInfo = controllers[2].text;
-                          if (accountTypeValues[index].isNotEmpty) {
-                            accountInfo =
-                                "(${accountTypeValues[index]}) " + accountInfo;
-                          }
-                          return pw.TableRow(
-                            decoration: pw.BoxDecoration(color: color),
-                            children: [
-                              _buildPdfCell(controllers[3].text),
-                              _buildPdfCell(accountInfo),
-                              _buildPdfCell(controllers[1].text),
-                              _buildPdfCell(controllers[0].text),
-                            ],
-                          );
-                        }).toList(),
-                        pw.TableRow(
-                          decoration: pw.BoxDecoration(
-                              color: PdfColor.fromInt(0xFF90CAF9)),
-                          children: [
-                            _buildPdfCell(''),
-                            _buildPdfCell('المجموع', isBold: true),
-                            _buildPdfCell(totalPaidController.text,
-                                isBold: true),
-                            _buildPdfCell(totalReceivedController.text,
-                                isBold: true),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ];
-          },
-        ),
-      );
-
-      final output = await getTemporaryDirectory();
-      final safeDate = widget.selectedDate.replaceAll('/', '-');
-      final file = File("${output.path}/يومية_صندوق_$safeDate.pdf");
-
-      await file.writeAsBytes(await pdf.save());
-      await Share.shareXFiles([XFile(file.path)],
-          text: 'يومية صندوق ${widget.selectedDate}');
-    } catch (e) {
-      debugPrint("PDF Error: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('حدث خطأ أثناء تصدير PDF: $e'),
-            backgroundColor: Colors.red),
-      );
-    }
-  }
-
   pw.Widget _buildPdfHeaderCell(String text, PdfColor color) {
     return pw.Container(
       padding: const pw.EdgeInsets.all(4),
@@ -2514,6 +2448,110 @@ class _BoxScreenState extends State<BoxScreen> {
       return suggestion.substring(dotIndex + 2).trim();
     }
     return suggestion.trim();
+  }
+
+  Future<Uint8List> _generatePdfBytes(List<dynamic> items) async {
+    final pdf = pw.Document();
+    var arabicFont;
+    try {
+      final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
+      arabicFont = pw.Font.ttf(fontData);
+    } catch (e) {
+      arabicFont = pw.Font.courier();
+    }
+
+    final PdfColor headerColor = PdfColor.fromInt(0xFFF3A30D);
+    final PdfColor headerTextColor = PdfColors.white;
+    final PdfColor rowEvenColor = PdfColors.white;
+    final PdfColor rowOddColor = PdfColor.fromInt(0xFFFFF3E0);
+    final PdfColor borderColor = PdfColor.fromInt(0xFFE0E0E0);
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFont),
+        build: (pw.Context context) {
+          return [
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                children: [
+                  pw.Center(
+                      child: pw.Text('يومية صندوق',
+                          style: pw.TextStyle(
+                              fontSize: 16, fontWeight: pw.FontWeight.bold))),
+                  pw.Center(
+                      child: pw.Text('تاريخ ${widget.selectedDate}',
+                          style: const pw.TextStyle(
+                              fontSize: 16, color: PdfColors.grey700))),
+                  pw.SizedBox(height: 10),
+                  pw.Table(
+                    border: pw.TableBorder.all(color: borderColor, width: 0.5),
+                    columnWidths: {
+                      0: const pw.FlexColumnWidth(2),
+                      1: const pw.FlexColumnWidth(2),
+                      2: const pw.FlexColumnWidth(4),
+                      3: const pw.FlexColumnWidth(3),
+                    },
+                    children: [
+                      pw.TableRow(
+                        decoration: pw.BoxDecoration(color: headerColor),
+                        children: [
+                          _buildPdfHeaderCell('مقبوض', headerTextColor),
+                          _buildPdfHeaderCell('مدفوع', headerTextColor),
+                          _buildPdfHeaderCell('الحساب', headerTextColor),
+                          _buildPdfHeaderCell('ملاحظات', headerTextColor),
+                        ],
+                      ),
+                      ...rowControllers.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final controllers = entry.value;
+                        if (controllers[0].text.isEmpty &&
+                            controllers[1].text.isEmpty &&
+                            controllers[2].text.isEmpty) {
+                          return pw.TableRow(
+                              children: List.filled(4, pw.SizedBox()));
+                        }
+                        final color =
+                            index % 2 == 0 ? rowEvenColor : rowOddColor;
+                        String accountInfo = controllers[2].text;
+                        if (accountTypeValues[index].isNotEmpty) {
+                          accountInfo =
+                              "(${accountTypeValues[index]}) " + accountInfo;
+                        }
+                        return pw.TableRow(
+                          decoration: pw.BoxDecoration(color: color),
+                          children: [
+                            _buildPdfCell(controllers[0].text),
+                            _buildPdfCell(controllers[1].text),
+                            _buildPdfCell(accountInfo),
+                            _buildPdfCell(controllers[3].text),
+                          ],
+                        );
+                      }).toList(),
+                      pw.TableRow(
+                        decoration: pw.BoxDecoration(
+                            color: PdfColor.fromInt(0xFF90CAF9)),
+                        children: [
+                          _buildPdfCell(totalReceivedController.text,
+                              isBold: true),
+                          _buildPdfCell(totalPaidController.text, isBold: true),
+                          _buildPdfCell('المجموع', isBold: true),
+                          _buildPdfCell(''),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return await pdf.save();
   }
 }
 

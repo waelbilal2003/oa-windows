@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
 import '../services/customer_index_service.dart';
 import '../services/sales_storage_service.dart';
 import '../services/box_storage_service.dart';
 import '../widgets/date_range_filter.dart';
 import '../widgets/exit_button.dart';
+import 'dart:typed_data';
+import '../widgets/pdf_action_menu.dart';
 
 class CustomerPreferencesScreen extends StatefulWidget {
   final CustomerData customer;
@@ -161,209 +160,6 @@ class _CustomerPreferencesScreenState extends State<CustomerPreferencesScreen> {
     _applyFilter();
   }
 
-  Future<void> _generateAndSharePdf() async {
-    try {
-      final pdf = pw.Document();
-
-      var arabicFont;
-      try {
-        final fontData =
-            await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
-        arabicFont = pw.Font.ttf(fontData);
-      } catch (e) {
-        arabicFont = pw.Font.courier();
-      }
-
-      final PdfColor headerColor = PdfColor.fromInt(0xFF00796B);
-      final PdfColor headerTextColor = PdfColors.white;
-      final PdfColor rowEvenColor = PdfColors.white;
-      final PdfColor rowOddColor = PdfColor.fromInt(0xFFB2DFDB);
-      final PdfColor borderColor = PdfColor.fromInt(0xFFE0E0E0);
-
-      final displayList = List<Map<String, String>>.from(_visibleTransactions);
-
-      final double totalTransactions = displayList.fold<double>(0.0, (sum, p) {
-        final val = double.tryParse(p['value'] ?? '0') ?? 0;
-        if (p['source'] == 'box_received') return sum - val;
-        return sum + val;
-      });
-
-      final balanceStr = widget.customer.balance
-          .toStringAsFixed(2)
-          .replaceAll(RegExp(r'\.00$'), '');
-      final totalStr =
-          totalTransactions.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
-
-      String filterDesc = 'حتى تاريخ ${widget.selectedDate}';
-      if (_filterFrom != null || _filterTo != null) {
-        final from = _filterFrom != null
-            ? '${_filterFrom!.year}/${_filterFrom!.month}/${_filterFrom!.day}'
-            : '—';
-        final to = _filterTo != null
-            ? '${_filterTo!.year}/${_filterTo!.month}/${_filterTo!.day}'
-            : '—';
-        filterDesc = 'من $from إلى $to';
-      }
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          textDirection: pw.TextDirection.rtl,
-          theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFont),
-          build: (pw.Context context) {
-            return [
-              pw.Directionality(
-                textDirection: pw.TextDirection.rtl,
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Center(
-                      child: pw.Text(
-                        'تفاصيل الزبون: ${widget.customer.name}',
-                        style: pw.TextStyle(
-                            fontSize: 16, fontWeight: pw.FontWeight.bold),
-                      ),
-                    ),
-                    pw.Center(
-                      child: pw.Text(
-                        filterDesc,
-                        style: const pw.TextStyle(
-                            fontSize: 16, color: PdfColors.grey700),
-                      ),
-                    ),
-                    pw.SizedBox(height: 14),
-                    pw.Container(
-                      decoration: pw.BoxDecoration(
-                        border: pw.Border.all(color: borderColor, width: 0.8),
-                        borderRadius: pw.BorderRadius.circular(8),
-                      ),
-                      padding: const pw.EdgeInsets.all(12),
-                      child: pw.Column(
-                        children: [
-                          _buildPdfInfoRow(
-                              'الموبايل',
-                              widget.customer.mobile.isEmpty
-                                  ? '—'
-                                  : widget.customer.mobile),
-                          pw.Divider(color: borderColor),
-                          _buildPdfInfoRow('الرصيد النهائي', balanceStr),
-                          pw.Divider(color: borderColor),
-                          _buildPdfInfoRow(
-                              'تاريخ البدء', widget.customer.startDate),
-                        ],
-                      ),
-                    ),
-                    pw.SizedBox(height: 14),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('السجلات',
-                            style: pw.TextStyle(
-                                fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                        pw.Container(
-                          padding: const pw.EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 4),
-                          decoration: pw.BoxDecoration(
-                            color: headerColor,
-                            borderRadius: pw.BorderRadius.circular(20),
-                          ),
-                          child: pw.Text(
-                            'المجموع: $totalStr',
-                            style: pw.TextStyle(
-                                color: PdfColors.white,
-                                fontSize: 16,
-                                fontWeight: pw.FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ),
-                    pw.SizedBox(height: 8),
-                    if (displayList.isEmpty)
-                      pw.Center(
-                        child: pw.Text('لا توجد معاملات مسجلة',
-                            style: const pw.TextStyle(color: PdfColors.grey)),
-                      )
-                    else
-                      pw.Table(
-                        border:
-                            pw.TableBorder.all(color: borderColor, width: 0.5),
-                        columnWidths: const {
-                          0: pw.FlexColumnWidth(2),
-                          1: pw.FlexColumnWidth(2),
-                          2: pw.FlexColumnWidth(2),
-                          3: pw.FlexColumnWidth(2),
-                        },
-                        children: [
-                          pw.TableRow(
-                            decoration: pw.BoxDecoration(color: headerColor),
-                            children: [
-                              _buildPdfHeaderCell('التاريخ', headerTextColor),
-                              _buildPdfHeaderCell('المبلغ', headerTextColor),
-                              _buildPdfHeaderCell('المصدر', headerTextColor),
-                              _buildPdfHeaderCell('البيان', headerTextColor),
-                            ],
-                          ),
-                          ...displayList.asMap().entries.map((entry) {
-                            final idx = entry.key;
-                            final p = entry.value;
-                            final color =
-                                idx % 2 == 0 ? rowEvenColor : rowOddColor;
-                            final sourceLabel = p['source'] == 'box_received'
-                                ? 'مقبوض'
-                                : p['source'] == 'box_paid'
-                                    ? 'مدفوع'
-                                    : 'مبيعات';
-                            return pw.TableRow(
-                              decoration: pw.BoxDecoration(color: color),
-                              children: [
-                                _buildPdfCell(p['date'] ?? ''),
-                                _buildPdfCell(p['value'] ?? '', isBold: true),
-                                _buildPdfCell(sourceLabel),
-                                _buildPdfCell(p['notes'] ?? ''),
-                              ],
-                            );
-                          }).toList(),
-                          pw.TableRow(
-                            decoration: pw.BoxDecoration(
-                                color: PdfColor.fromInt(0xFF80CBC4)),
-                            children: [
-                              _buildPdfCell(''),
-                              _buildPdfCell(totalStr, isBold: true),
-                              _buildPdfCell(''),
-                              _buildPdfCell('المجموع', isBold: true),
-                            ],
-                          ),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ];
-          },
-        ),
-      );
-
-      final output = await getTemporaryDirectory();
-      final safeDate = widget.selectedDate.replaceAll('/', '-');
-      final safeName = widget.customer.name.replaceAll(' ', '_');
-      final file = File("${output.path}/تفاصيل_زبون_${safeName}_$safeDate.pdf");
-
-      await file.writeAsBytes(await pdf.save());
-      await Share.shareXFiles([XFile(file.path)],
-          text:
-              'تفاصيل الزبون ${widget.customer.name} - ${widget.selectedDate}');
-    } catch (e) {
-      debugPrint("PDF Error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('حدث خطأ أثناء تصدير PDF: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
-    }
-  }
-
   pw.Widget _buildPdfInfoRow(String label, String value) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 5),
@@ -479,10 +275,15 @@ class _CustomerPreferencesScreenState extends State<CustomerPreferencesScreen> {
                 onClear: _clearFilter,
                 color: Colors.white,
               ),
-              IconButton(
-                icon: const Icon(Icons.picture_as_pdf),
-                tooltip: 'تصدير PDF',
-                onPressed: _isLoading ? null : _generateAndSharePdf,
+              PdfActionMenu(
+                type: 'customer',
+                supplierOrCustomerName: widget.customer.name,
+                filterDesc: widget.selectedDate,
+                balance: widget.customer.balance,
+                storeName: '',
+                selectedDate: widget.selectedDate,
+                getItems: () async => _visibleTransactions,
+                generatePdfCallback: (items) => _generatePdfBytes(items),
               ),
             ],
           ),
@@ -747,5 +548,184 @@ class _CustomerPreferencesScreenState extends State<CustomerPreferencesScreen> {
     } catch (_) {
       return null;
     }
+  }
+
+  Future<Uint8List> _generatePdfBytes(List<dynamic> items) async {
+    final pdf = pw.Document();
+    var arabicFont;
+    try {
+      final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
+      arabicFont = pw.Font.ttf(fontData);
+    } catch (e) {
+      arabicFont = pw.Font.courier();
+    }
+
+    final PdfColor headerColor = PdfColor.fromInt(0xFF00796B);
+    final PdfColor headerTextColor = PdfColors.white;
+    final PdfColor rowEvenColor = PdfColors.white;
+    final PdfColor rowOddColor = PdfColor.fromInt(0xFFB2DFDB);
+    final PdfColor borderColor = PdfColor.fromInt(0xFFE0E0E0);
+
+    final displayList = List<Map<String, String>>.from(_visibleTransactions);
+
+    final double totalTransactions = displayList.fold<double>(0.0, (sum, p) {
+      final val = double.tryParse(p['value'] ?? '0') ?? 0;
+      if (p['source'] == 'box_received') return sum - val;
+      return sum + val;
+    });
+
+    final balanceStr = widget.customer.balance
+        .toStringAsFixed(2)
+        .replaceAll(RegExp(r'\.00$'), '');
+    final totalStr =
+        totalTransactions.toStringAsFixed(2).replaceAll(RegExp(r'\.00$'), '');
+
+    String filterDesc = 'حتى تاريخ ${widget.selectedDate}';
+    if (_filterFrom != null || _filterTo != null) {
+      final from = _filterFrom != null
+          ? '${_filterFrom!.year}/${_filterFrom!.month}/${_filterFrom!.day}'
+          : '—';
+      final to = _filterTo != null
+          ? '${_filterTo!.year}/${_filterTo!.month}/${_filterTo!.day}'
+          : '—';
+      filterDesc = 'من $from إلى $to';
+    }
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFont),
+        build: (pw.Context context) {
+          return [
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Center(
+                    child: pw.Text(
+                      'تفاصيل الزبون: ${widget.customer.name}',
+                      style: pw.TextStyle(
+                          fontSize: 16, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                  pw.Center(
+                    child: pw.Text(
+                      filterDesc,
+                      style: const pw.TextStyle(
+                          fontSize: 16, color: PdfColors.grey700),
+                    ),
+                  ),
+                  pw.SizedBox(height: 14),
+                  pw.Container(
+                    decoration: pw.BoxDecoration(
+                      border: pw.Border.all(color: borderColor, width: 0.8),
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    padding: const pw.EdgeInsets.all(12),
+                    child: pw.Column(
+                      children: [
+                        _buildPdfInfoRow(
+                            'الموبايل',
+                            widget.customer.mobile.isEmpty
+                                ? '—'
+                                : widget.customer.mobile),
+                        pw.Divider(color: borderColor),
+                        _buildPdfInfoRow('الرصيد النهائي', balanceStr),
+                        pw.Divider(color: borderColor),
+                        _buildPdfInfoRow(
+                            'تاريخ البدء', widget.customer.startDate),
+                      ],
+                    ),
+                  ),
+                  pw.SizedBox(height: 14),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('السجلات',
+                          style: pw.TextStyle(
+                              fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: pw.BoxDecoration(
+                          color: headerColor,
+                          borderRadius: pw.BorderRadius.circular(20),
+                        ),
+                        child: pw.Text('المجموع: $totalStr',
+                            style: pw.TextStyle(
+                                color: PdfColors.white,
+                                fontSize: 16,
+                                fontWeight: pw.FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 8),
+                  if (displayList.isEmpty)
+                    pw.Center(
+                        child: pw.Text('لا توجد معاملات مسجلة',
+                            style: const pw.TextStyle(color: PdfColors.grey)))
+                  else
+                    pw.Table(
+                      border:
+                          pw.TableBorder.all(color: borderColor, width: 0.5),
+                      columnWidths: const {
+                        0: pw.FlexColumnWidth(2),
+                        1: pw.FlexColumnWidth(2),
+                        2: pw.FlexColumnWidth(2),
+                        3: pw.FlexColumnWidth(2),
+                      },
+                      children: [
+                        pw.TableRow(
+                          decoration: pw.BoxDecoration(color: headerColor),
+                          children: [
+                            _buildPdfHeaderCell('البيان', headerTextColor),
+                            _buildPdfHeaderCell('المصدر', headerTextColor),
+                            _buildPdfHeaderCell('المبلغ', headerTextColor),
+                            _buildPdfHeaderCell('التاريخ', headerTextColor),
+                          ],
+                        ),
+                        ...displayList.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final p = entry.value;
+                          final color =
+                              idx % 2 == 0 ? rowEvenColor : rowOddColor;
+                          final sourceLabel = p['source'] == 'box_received'
+                              ? 'مقبوض'
+                              : p['source'] == 'box_paid'
+                                  ? 'مدفوع'
+                                  : 'مبيعات';
+                          return pw.TableRow(
+                            decoration: pw.BoxDecoration(color: color),
+                            children: [
+                              _buildPdfCell(p['notes'] ?? ''),
+                              _buildPdfCell(sourceLabel),
+                              _buildPdfCell(p['value'] ?? '', isBold: true),
+                              _buildPdfCell(p['date'] ?? ''),
+                            ],
+                          );
+                        }).toList(),
+                        pw.TableRow(
+                          decoration: pw.BoxDecoration(
+                              color: PdfColor.fromInt(0xFF80CBC4)),
+                          children: [
+                            _buildPdfCell('المجموع', isBold: true),
+                            _buildPdfCell(''),
+                            _buildPdfCell(totalStr, isBold: true),
+                            _buildPdfCell(''),
+                          ],
+                        ),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return await pdf.save();
   }
 }

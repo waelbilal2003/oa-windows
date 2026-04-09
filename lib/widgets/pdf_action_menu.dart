@@ -13,7 +13,8 @@ class PdfActionMenu extends StatelessWidget {
   final double? balance;
   final String storeName;
   final String selectedDate;
-  final String type; // 'supplier' or 'customer'
+  final String type; // 'supplier', 'customer', 'box', 'purchases', 'bait'
+  final double iconSize;
 
   const PdfActionMenu({
     Key? key,
@@ -25,6 +26,7 @@ class PdfActionMenu extends StatelessWidget {
     required this.storeName,
     required this.selectedDate,
     required this.type,
+    this.iconSize = 35,
   }) : super(key: key);
 
   Future<Uint8List> _generatePdfBytes() async {
@@ -33,19 +35,42 @@ class PdfActionMenu extends StatelessWidget {
     return await generatePdfCallback(items);
   }
 
+  String _buildFileName() {
+    final safeDate = selectedDate.replaceAll('/', '-');
+    switch (type) {
+      case 'customer':
+        final safeName = supplierOrCustomerName.replaceAll(' ', '_');
+        return 'فاتورة_الزبون_${safeName}_$safeDate.pdf';
+      case 'supplier':
+        final safeName = supplierOrCustomerName.replaceAll(' ', '_');
+        return 'مشتريات_من_المورد_${safeName}_$safeDate.pdf';
+      case 'box':
+        return 'يومية_صندوق_$safeDate.pdf';
+      case 'purchases':
+        return 'يومية_مشتريات_$safeDate.pdf';
+      case 'bait':
+        final fromTo = filterDesc.replaceAll('/', '-').replaceAll(' ', '_');
+        return 'تقرير_البايت_$fromTo.pdf';
+      case 'sales':
+        return 'يومية_مبيعات_$safeDate.pdf';
+      default:
+        return 'تقرير_$safeDate.pdf';
+    }
+  }
+
   Future<void> _sharePdf() async {
     try {
       final pdfBytes = await _generatePdfBytes();
       final output = await getTemporaryDirectory();
-      final fileName = type == 'supplier'
-          ? 'مشتريات_$supplierOrCustomerName.pdf'
-          : 'فاتورة_$supplierOrCustomerName.pdf';
+      final fileName = _buildFileName();
       final file = File("${output.path}/$fileName");
       await file.writeAsBytes(pdfBytes);
       await Share.shareXFiles([XFile(file.path)],
           text: type == 'supplier'
               ? 'مشتريات المورد $supplierOrCustomerName - $filterDesc'
-              : 'فاتورة الزبون $supplierOrCustomerName - $filterDesc');
+              : type == 'customer'
+                  ? 'فاتورة الزبون $supplierOrCustomerName - $filterDesc'
+                  : 'تقرير $type - $filterDesc');
     } catch (e) {
       rethrow;
     }
@@ -56,9 +81,7 @@ class PdfActionMenu extends StatelessWidget {
       final pdfBytes = await _generatePdfBytes();
       final output = await getDownloadsDirectory();
       if (output == null) throw Exception('لا يمكن الوصول إلى مجلد التنزيلات');
-      final fileName = type == 'supplier'
-          ? 'مشتريات_$supplierOrCustomerName.pdf'
-          : 'فاتورة_$supplierOrCustomerName.pdf';
+      final fileName = _buildFileName();
       final file = File("${output.path}/$fileName");
       await file.writeAsBytes(pdfBytes);
     } catch (e) {
@@ -69,11 +92,10 @@ class PdfActionMenu extends StatelessWidget {
   Future<void> _printPdf() async {
     try {
       final pdfBytes = await _generatePdfBytes();
+      final fileName = _buildFileName();
       await Printing.sharePdf(
         bytes: pdfBytes,
-        filename: type == 'supplier'
-            ? 'مشتريات_المورد_$supplierOrCustomerName.pdf'
-            : 'فاتورة_الزبون_$supplierOrCustomerName.pdf',
+        filename: fileName,
       );
     } catch (e) {
       rethrow;
@@ -83,7 +105,7 @@ class PdfActionMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.picture_as_pdf),
+      icon: Icon(Icons.picture_as_pdf, size: iconSize),
       tooltip: 'خيارات PDF',
       onSelected: (value) async {
         try {
@@ -100,7 +122,7 @@ class PdfActionMenu extends StatelessWidget {
               await _savePdf();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم حفظ PDF في مجلد التنزيلات')),
+                  const SnackBar(content: Text('تم الحفظ في مجلد التنزيلات')),
                 );
               }
               break;

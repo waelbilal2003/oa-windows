@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:share_plus/share_plus.dart';
 import '../models/bait_model.dart';
 import '../services/bait_service.dart';
 import '../widgets/date_range_filter.dart';
 import '../widgets/exit_button.dart';
+import 'dart:typed_data';
+import '../widgets/pdf_action_menu.dart';
 
 class BaitScreen extends StatefulWidget {
   final String selectedDate;
@@ -89,136 +88,112 @@ class _BaitScreenState extends State<BaitScreen> {
     );
   }
 
-  Future<void> _generateAndSharePdf() async {
-    if (_filterFrom == null || _filterTo == null) return;
-    final List<BaitData> data =
-        await _baitService.getBaitDataForDateRange(_filterFrom!, _filterTo!);
-    if (!mounted) return;
-
+  Future<Uint8List> _generatePdfBytes(List<dynamic> items) async {
+    final data = items.cast<BaitData>();
+    final pdf = pw.Document();
+    var arabicFont;
     try {
-      final pdf = pw.Document();
-      var arabicFont;
-      try {
-        final fontData =
-            await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
-        arabicFont = pw.Font.ttf(fontData);
-      } catch (e) {
-        arabicFont = pw.Font.courier();
-      }
-
-      final PdfColor headerColor = PdfColor.fromInt(0xFF00695C);
-      final PdfColor headerTextColor = PdfColors.white;
-      final PdfColor rowEvenColor = PdfColors.white;
-      final PdfColor rowOddColor = PdfColor.fromInt(0xFFE0F2F1);
-      final PdfColor borderColor = PdfColor.fromInt(0xFFB2DFDB);
-
-      final fromStr =
-          '${_filterFrom!.year}/${_filterFrom!.month}/${_filterFrom!.day}';
-      final toStr = '${_filterTo!.year}/${_filterTo!.month}/${_filterTo!.day}';
-
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          textDirection: pw.TextDirection.rtl,
-          theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFont),
-          build: (pw.Context context) {
-            return [
-              pw.Directionality(
-                textDirection: pw.TextDirection.rtl,
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    pw.Center(
-                      child: pw.Text(
-                        'تقرير البايت',
-                        style: pw.TextStyle(
-                            fontSize: 18, fontWeight: pw.FontWeight.bold),
-                      ),
-                    ),
-                    pw.Center(
-                      child: pw.Text(
-                        'من $fromStr إلى $toStr',
-                        style: const pw.TextStyle(
-                            fontSize: 14, color: PdfColors.grey700),
-                      ),
-                    ),
-                    pw.SizedBox(height: 16),
-                    if (data.isEmpty)
-                      pw.Center(
-                        child: pw.Text('لا توجد حركة مواد في هذا النطاق',
-                            style: const pw.TextStyle(color: PdfColors.grey)),
-                      )
-                    else
-                      pw.Table(
-                        border:
-                            pw.TableBorder.all(color: borderColor, width: 0.5),
-                        columnWidths: const {
-                          0: pw.FlexColumnWidth(4),
-                          1: pw.FlexColumnWidth(2),
-                          2: pw.FlexColumnWidth(2),
-                          3: pw.FlexColumnWidth(2),
-                        },
-                        children: [
-                          pw.TableRow(
-                            decoration: pw.BoxDecoration(color: headerColor),
-                            children: [
-                              _buildPdfHeaderCell('المادة', headerTextColor),
-                              _buildPdfHeaderCell('المشتريات', headerTextColor),
-                              _buildPdfHeaderCell('المبيعات', headerTextColor),
-                              _buildPdfHeaderCell('البايت', headerTextColor),
-                            ],
-                          ),
-                          ...data.asMap().entries.map((entry) {
-                            final idx = entry.key;
-                            final item = entry.value;
-                            final color =
-                                idx % 2 == 0 ? rowEvenColor : rowOddColor;
-                            return pw.TableRow(
-                              decoration: pw.BoxDecoration(color: color),
-                              children: [
-                                _buildPdfCell(item.materialName),
-                                _buildPdfCell(
-                                    item.purchasesCount.toStringAsFixed(0)),
-                                _buildPdfCell(
-                                    item.salesCount.toStringAsFixed(0)),
-                                _buildPdfCell(
-                                  item.baitValue.toStringAsFixed(0),
-                                  isBold: true,
-                                  color: item.baitValue >= 0
-                                      ? PdfColors.green
-                                      : PdfColors.red,
-                                ),
-                              ],
-                            );
-                          }).toList(),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ];
-          },
-        ),
-      );
-
-      final output = await getTemporaryDirectory();
-      final safeFrom = fromStr.replaceAll('/', '-');
-      final safeTo = toStr.replaceAll('/', '-');
-      final fileName = 'تقرير_البايت_${safeFrom}_إلى_${safeTo}.pdf';
-      final file = File("${output.path}/$fileName");
-      await file.writeAsBytes(await pdf.save());
-      await Share.shareXFiles([XFile(file.path)],
-          text: 'تقرير البايت للفترة $fromStr إلى $toStr');
+      final fontData = await rootBundle.load("assets/fonts/Cairo-Regular.ttf");
+      arabicFont = pw.Font.ttf(fontData);
     } catch (e) {
-      debugPrint("PDF Error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('حدث خطأ أثناء تصدير PDF: $e'),
-              backgroundColor: Colors.red),
-        );
-      }
+      arabicFont = pw.Font.courier();
     }
+
+    final PdfColor headerColor = PdfColor.fromInt(0xFF00695C);
+    final PdfColor headerTextColor = PdfColors.white;
+    final PdfColor rowEvenColor = PdfColors.white;
+    final PdfColor rowOddColor = PdfColor.fromInt(0xFFE0F2F1);
+    final PdfColor borderColor = PdfColor.fromInt(0xFFB2DFDB);
+
+    final fromStr =
+        '${_filterFrom!.year}/${_filterFrom!.month}/${_filterFrom!.day}';
+    final toStr = '${_filterTo!.year}/${_filterTo!.month}/${_filterTo!.day}';
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: pw.ThemeData.withFont(base: arabicFont, bold: arabicFont),
+        build: (pw.Context context) {
+          return [
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Center(
+                    child: pw.Text(
+                      'تقرير البايت',
+                      style: pw.TextStyle(
+                          fontSize: 18, fontWeight: pw.FontWeight.bold),
+                    ),
+                  ),
+                  pw.Center(
+                    child: pw.Text(
+                      'من $fromStr إلى $toStr',
+                      style: const pw.TextStyle(
+                          fontSize: 14, color: PdfColors.grey700),
+                    ),
+                  ),
+                  pw.SizedBox(height: 16),
+                  if (data.isEmpty)
+                    pw.Center(
+                      child: pw.Text('لا توجد حركة مواد في هذا النطاق',
+                          style: const pw.TextStyle(color: PdfColors.grey)),
+                    )
+                  else
+                    pw.Table(
+                      border:
+                          pw.TableBorder.all(color: borderColor, width: 0.5),
+                      columnWidths: const {
+                        0: pw.FlexColumnWidth(2),
+                        1: pw.FlexColumnWidth(2),
+                        2: pw.FlexColumnWidth(2),
+                        3: pw.FlexColumnWidth(4),
+                      },
+                      children: [
+                        pw.TableRow(
+                          decoration: pw.BoxDecoration(color: headerColor),
+                          children: [
+                            _buildPdfHeaderCell('البايت', headerTextColor),
+                            _buildPdfHeaderCell('المبيعات', headerTextColor),
+                            _buildPdfHeaderCell('المشتريات', headerTextColor),
+                            _buildPdfHeaderCell('المادة', headerTextColor),
+                          ],
+                        ),
+                        ...data.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final item = entry.value;
+                          final color =
+                              idx % 2 == 0 ? rowEvenColor : rowOddColor;
+                          return pw.TableRow(
+                            decoration: pw.BoxDecoration(color: color),
+                            children: [
+                              _buildPdfCell(
+                                item.baitValue.toStringAsFixed(0),
+                                isBold: true,
+                                color: item.baitValue >= 0
+                                    ? PdfColors.green
+                                    : PdfColors.red,
+                              ),
+                              _buildPdfCell(item.salesCount.toStringAsFixed(0)),
+                              _buildPdfCell(
+                                  item.purchasesCount.toStringAsFixed(0)),
+                              _buildPdfCell(item.materialName),
+                            ],
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                ],
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return await pdf.save();
   }
 
   pw.Widget _buildPdfHeaderCell(String text, PdfColor color) {
@@ -278,10 +253,20 @@ class _BaitScreenState extends State<BaitScreen> {
             onClear: _clearFilter,
             color: Colors.white,
           ),
-          IconButton(
-            icon: const Icon(Icons.picture_as_pdf),
-            tooltip: 'تصدير PDF',
-            onPressed: _generateAndSharePdf,
+          PdfActionMenu(
+            type: 'bait',
+            supplierOrCustomerName: 'البايت',
+            filterDesc:
+                '${_filterFrom?.year}/${_filterFrom?.month}/${_filterFrom?.day} إلى ${_filterTo?.year}/${_filterTo?.month}/${_filterTo?.day}',
+            balance: null,
+            storeName: '',
+            selectedDate: widget.selectedDate,
+            getItems: () async {
+              if (_filterFrom == null || _filterTo == null) return [];
+              return await _baitService.getBaitDataForDateRange(
+                  _filterFrom!, _filterTo!);
+            },
+            generatePdfCallback: (items) => _generatePdfBytes(items),
           ),
         ],
       ),
