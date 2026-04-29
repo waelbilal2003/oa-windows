@@ -341,11 +341,8 @@ import 'package:window_manager/window_manager.dart';
 import 'screens/login_screen.dart';
 import 'screens/settings_screen.dart';
 
-// وضع الاختبار: تغيير هذه القيمة للتبديل بين وضع الاختبار والوضع الحقيقي
-const bool TEST_MODE =
-    true; // true = وضع الاختبار (دقائق), false = وضع حقيقي (أيام)
-const int TRIAL_DURATION_MINUTES = 2; // مدة الاختبار بالدقائق (للتجربة)
-const int TRIAL_DURATION_DAYS = 7; // المدة الحقيقية بالأيام
+// مدة النسخة التجريبية بالأيام
+const int TRIAL_DURATION_DAYS = 7;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -366,77 +363,42 @@ void main() async {
   // التحقق من صلاحية النسخة التجريبية
   final prefs = await SharedPreferences.getInstance();
 
-  if (TEST_MODE) {
-    final String? firstLaunchDateTime =
-        prefs.getString('trial_first_launch_datetime');
-    final DateTime now = DateTime.now();
+  final String? firstLaunchDate = prefs.getString('trial_first_launch_date');
+  final DateTime now = DateTime.now();
 
-    bool isTrialValid = true;
-    int remainingMinutes = TRIAL_DURATION_MINUTES;
+  bool isTrialValid = true;
+  int remainingDays = TRIAL_DURATION_DAYS;
 
-    if (firstLaunchDateTime == null) {
-      // أول تشغيل - حفظ وقت بدء الاختبار
-      await prefs.setString(
-          'trial_first_launch_datetime', now.toIso8601String());
-      print('═══ وضع الاختبار ═══');
-      print('تم بدء الاختبار في: ${now.hour}:${now.minute}:${now.second}');
-      print('مدة الاختبار: $TRIAL_DURATION_MINUTES دقائق');
-      print(
-          'سينتهي الاختبار في: ${now.add(Duration(minutes: TRIAL_DURATION_MINUTES)).hour}:${now.add(Duration(minutes: TRIAL_DURATION_MINUTES)).minute}');
-      remainingMinutes = TRIAL_DURATION_MINUTES;
-    } else {
-      final DateTime firstLaunch = DateTime.parse(firstLaunchDateTime);
-      final int minutesPassed = now.difference(firstLaunch).inMinutes;
-
-      print('═══ وضع الاختبار ═══');
-      print(
-          'وقت البدء: ${firstLaunch.hour}:${firstLaunch.minute}:${firstLaunch.second}');
-      print('الدقائق المنقضية: $minutesPassed');
-
-      if (minutesPassed >= TRIAL_DURATION_MINUTES) {
-        isTrialValid = false;
-        remainingMinutes = 0;
-        print('⚠️ انتهت فترة الاختبار!');
-      } else {
-        remainingMinutes = TRIAL_DURATION_MINUTES - minutesPassed;
-        print('✅ متبقي: $remainingMinutes دقائق');
-      }
-    }
-
-    if (!isTrialValid) {
-      runApp(const TrialExpiredApp());
-    } else {
-      runApp(MyApp(remainingTime: remainingMinutes, isTestMode: true));
-    }
+  if (firstLaunchDate == null) {
+    // أول تشغيل للتطبيق - حفظ تاريخ اليوم
+    await prefs.setString(
+        'trial_first_launch_date', now.toIso8601String().split('T')[0]);
+    print('تم بدء النسخة التجريبية لمدة $TRIAL_DURATION_DAYS أيام');
+    print('تاريخ البدء: ${now.year}/${now.month}/${now.day}');
+    remainingDays = TRIAL_DURATION_DAYS;
   } else {
-    // الوضع الحقيقي (أيام)
-    final String? firstLaunchDate = prefs.getString('trial_first_launch_date');
-    final DateTime now = DateTime.now();
+    // حساب الأيام المتبقية
+    final DateTime firstLaunch = DateTime.parse(firstLaunchDate);
+    final int daysPassed = now.difference(firstLaunch).inDays;
 
-    bool isTrialValid = true;
-    int remainingDays = TRIAL_DURATION_DAYS;
+    print(
+        'تاريخ أول تشغيل: ${firstLaunch.year}/${firstLaunch.month}/${firstLaunch.day}');
+    print('الأيام المنقضية: $daysPassed');
 
-    if (firstLaunchDate == null) {
-      await prefs.setString(
-          'trial_first_launch_date', now.toIso8601String().split('T')[0]);
-      remainingDays = TRIAL_DURATION_DAYS;
+    if (daysPassed >= TRIAL_DURATION_DAYS) {
+      isTrialValid = false;
+      remainingDays = 0;
+      print('⚠️ انتهت صلاحية النسخة التجريبية!');
     } else {
-      final DateTime firstLaunch = DateTime.parse(firstLaunchDate);
-      final int daysPassed = now.difference(firstLaunch).inDays;
-
-      if (daysPassed >= TRIAL_DURATION_DAYS) {
-        isTrialValid = false;
-        remainingDays = 0;
-      } else {
-        remainingDays = TRIAL_DURATION_DAYS - daysPassed;
-      }
+      remainingDays = TRIAL_DURATION_DAYS - daysPassed;
+      print('✅ متبقي: $remainingDays أيام');
     }
+  }
 
-    if (!isTrialValid) {
-      runApp(const TrialExpiredApp());
-    } else {
-      runApp(MyApp(remainingTime: remainingDays, isTestMode: false));
-    }
+  if (!isTrialValid) {
+    runApp(const TrialExpiredApp());
+  } else {
+    runApp(MyApp(remainingTime: remainingDays));
   }
 }
 
@@ -452,44 +414,226 @@ class TrialExpiredApp extends StatelessWidget {
         body: Container(
           width: double.infinity,
           height: double.infinity,
-          color: const Color(0xFF1A1A1A),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFF1A1A1A),
+                Color(0xFF2D2D2D),
+                Color(0xFF1A1A1A),
+              ],
+            ),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.gpp_bad,
-                color: Colors.red,
-                size: 100,
+              // أيقونة التحذير
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.red, width: 3),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.red.withOpacity(0.3),
+                      blurRadius: 20,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.gpp_bad,
+                  color: Colors.red,
+                  size: 80,
+                ),
               ),
-              const SizedBox(height: 30),
+
+              const SizedBox(height: 40),
+
+              // عنوان انتهاء الصلاحية
               const Text(
                 'انتهت صلاحية النسخة التجريبية',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
+
               const SizedBox(height: 20),
-              const Text(
-                'انتهت فترة التجربة البالغة 7 أيام',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  color: Colors.white70,
+
+              // رسالة المدة
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: const Text(
+                  'انتهت فترة التجربة البالغة 7 أيام',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Color(0xFFFF6B6B),
+                  ),
                 ),
               ),
-              const SizedBox(height: 10),
-              const Text(
-                'يرجى الاتصال بالمطور للحصول على النسخة الكاملة',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.white60,
+
+              const SizedBox(height: 30),
+
+              // معلومات الاتصال
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                padding: const EdgeInsets.all(25),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.1),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.person, color: Colors.teal, size: 24),
+                        SizedBox(width: 10),
+                        Text(
+                          'للحصول على النسخة الكاملة يرجى التواصل مع:',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 25),
+
+                    // معلومات المبرمج
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.teal.withOpacity(0.3)),
+                      ),
+                      child: const Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.code, color: Colors.teal, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'مبرمج:',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.teal,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'وائل بلال',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.phone, color: Colors.teal, size: 18),
+                              SizedBox(width: 5),
+                              Text(
+                                '+963935702074',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 15),
+
+                    // معلومات المحاسب
+                    Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                        border:
+                            Border.all(color: Colors.orange.withOpacity(0.3)),
+                      ),
+                      child: const Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.account_balance,
+                                  color: Colors.orange, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'محاسب:',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'عدنان الحجي',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.phone, color: Colors.orange, size: 18),
+                              SizedBox(width: 5),
+                              Text(
+                                '+963944367326',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  letterSpacing: 1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
               const SizedBox(height: 40),
+
+              // زر إغلاق التطبيق
               ElevatedButton(
                 onPressed: () {
                   windowManager.destroy();
@@ -498,16 +642,27 @@ class TrialExpiredApp extends StatelessWidget {
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 15,
+                    horizontal: 50,
+                    vertical: 18,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 5,
                 ),
-                child: const Text(
-                  'إغلاق التطبيق',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.close, size: 22),
+                    SizedBox(width: 10),
+                    Text(
+                      'إغلاق التطبيق',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -518,15 +673,13 @@ class TrialExpiredApp extends StatelessWidget {
   }
 }
 
-// التطبيق الرئيسي مع عرض الوقت المتبقي
+// التطبيق الرئيسي
 class MyApp extends StatefulWidget {
   final int remainingTime;
-  final bool isTestMode;
 
   const MyApp({
     super.key,
     required this.remainingTime,
-    required this.isTestMode,
   });
 
   @override
@@ -537,22 +690,12 @@ class _MyAppState extends State<MyApp> {
   double _fontScalePercent = 0.5;
   double _iconScalePercent = 0.5;
   bool _isLoading = true;
-  String _remainingText = '';
   bool _hasShownReminder = false;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
-    _updateRemainingText();
-  }
-
-  void _updateRemainingText() {
-    if (widget.isTestMode) {
-      _remainingText = '⏱ اختبار: ${widget.remainingTime} دقائق متبقية';
-    } else {
-      _remainingText = '📅 تجريبي: ${widget.remainingTime} أيام متبقية';
-    }
   }
 
   Future<void> _loadSettings() async {
@@ -575,25 +718,17 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
-    // استخدام addPostFrameCallback لتأخير عرض SnackBar حتى يتم بناء الشجرة
+    // عرض تنبيه عند بقاء 3 أيام أو أقل
     if (!_hasShownReminder &&
         widget.remainingTime <= 3 &&
         widget.remainingTime > 0) {
       _hasShownReminder = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
-          String message;
-          if (widget.isTestMode) {
-            message = '⚠️ تنبيه: متبقي ${widget.remainingTime} دقائق فقط!';
-          } else {
-            message =
-                '⚠️ تنبيه: متبقي ${widget.remainingTime} أيام على انتهاء النسخة التجريبية';
-          }
-
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                message,
+                '⚠️ تنبيه: متبقي ${widget.remainingTime} أيام على انتهاء النسخة التجريبية',
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontSize: 16),
               ),
@@ -680,33 +815,7 @@ class _MyAppState extends State<MyApp> {
           contentTextStyle: TextStyle(fontSize: 12 * _fontScale),
         ),
       ),
-      home: Builder(
-        builder: (context) {
-          // إضافة شريط علوي يوضح الوقت المتبقي في وضع الاختبار
-          if (widget.isTestMode) {
-            return Column(
-              children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(8),
-                  color: widget.remainingTime <= 2 ? Colors.red : Colors.orange,
-                  child: Text(
-                    _remainingText,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                const Expanded(child: LoginScreen()),
-              ],
-            );
-          }
-          return const LoginScreen();
-        },
-      ),
+      home: const LoginScreen(),
       routes: {
         '/settings': (context) => const SettingsScreen(),
       },
