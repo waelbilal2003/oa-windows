@@ -367,9 +367,6 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
 
   if (TEST_MODE) {
-    // حذف بيانات الاختبار السابقة لبدء اختبار جديد (اختياري)
-    // await prefs.remove('trial_first_launch_datetime');
-
     final String? firstLaunchDateTime =
         prefs.getString('trial_first_launch_datetime');
     final DateTime now = DateTime.now();
@@ -407,7 +404,7 @@ void main() async {
     }
 
     if (!isTrialValid) {
-      runApp(const TrialExpiredApp(isTestMode: true));
+      runApp(const TrialExpiredApp());
     } else {
       runApp(MyApp(remainingTime: remainingMinutes, isTestMode: true));
     }
@@ -436,7 +433,7 @@ void main() async {
     }
 
     if (!isTrialValid) {
-      runApp(const TrialExpiredApp(isTestMode: false));
+      runApp(const TrialExpiredApp());
     } else {
       runApp(MyApp(remainingTime: remainingDays, isTestMode: false));
     }
@@ -445,9 +442,7 @@ void main() async {
 
 // تطبيق انتهاء الصلاحية
 class TrialExpiredApp extends StatelessWidget {
-  final bool isTestMode;
-
-  const TrialExpiredApp({super.key, required this.isTestMode});
+  const TrialExpiredApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -467,24 +462,20 @@ class TrialExpiredApp extends StatelessWidget {
                 size: 100,
               ),
               const SizedBox(height: 30),
-              Text(
-                isTestMode
-                    ? 'انتهت فترة الاختبار!'
-                    : 'انتهت صلاحية النسخة التجريبية',
+              const Text(
+                'انتهت صلاحية النسخة التجريبية',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
               const SizedBox(height: 20),
-              Text(
-                isTestMode
-                    ? 'يمكنك إعادة تشغيل التطبيق لبدء اختبار جديد'
-                    : 'انتهت فترة التجربة البالغة 7 أيام',
+              const Text(
+                'انتهت فترة التجربة البالغة 7 أيام',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   color: Colors.white70,
                 ),
@@ -499,68 +490,25 @@ class TrialExpiredApp extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      windowManager.destroy();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 40,
-                        vertical: 15,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: const Text(
-                      'إغلاق التطبيق',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+              ElevatedButton(
+                onPressed: () {
+                  windowManager.destroy();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 40,
+                    vertical: 15,
                   ),
-                  if (isTestMode) ...[
-                    const SizedBox(width: 20),
-                    ElevatedButton(
-                      onPressed: () async {
-                        // إعادة تعيين البيانات للتجربة مرة أخرى
-                        final prefs = await SharedPreferences.getInstance();
-                        await prefs.remove('trial_first_launch_datetime');
-                        // عرض SnackBar بشكل صحيح
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'تم إعادة التعيين. أعد تشغيل التطبيق للتجربة مرة أخرى.'),
-                              backgroundColor: Colors.green,
-                              duration: Duration(seconds: 3),
-                            ),
-                          );
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 40,
-                          vertical: 15,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        'إعادة التجربة',
-                        style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: const Text(
+                  'إغلاق التطبيق',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
