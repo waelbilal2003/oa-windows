@@ -462,27 +462,6 @@ class TrialExpiredApp extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              // رسالة المدة
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
-                ),
-                child: const Text(
-                  'انتهت فترة التجربة البالغة 7 أيام',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 20,
-                    color: Color(0xFFFF6B6B),
-                  ),
-                ),
-              ),
-
               const SizedBox(height: 30),
 
               // معلومات الاتصال
@@ -504,7 +483,7 @@ class TrialExpiredApp extends StatelessWidget {
                         Icon(Icons.person, color: Colors.teal, size: 24),
                         SizedBox(width: 10),
                         Text(
-                          'للحصول على النسخة الكاملة يرجى التواصل مع:',
+                          'للحصول على النسخة الكاملة يرجى التواصل مع',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: 16,
@@ -532,7 +511,7 @@ class TrialExpiredApp extends StatelessWidget {
                               Icon(Icons.code, color: Colors.teal, size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'مبرمج:',
+                                'المبرمج',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -590,7 +569,7 @@ class TrialExpiredApp extends StatelessWidget {
                                   color: Colors.orange, size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'محاسب:',
+                                'المحاسب',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
